@@ -1,6 +1,7 @@
 use std::collections::HashMap;
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Cursor, Write};
 use std::net::TcpListener;
+use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
@@ -166,6 +167,39 @@ impl GoogClient {
         Ok(())
     }
 
+    pub async fn download_file(&mut self, file: &FileInfo) -> Result<PathBuf> {
+        let mut endpoint = self.endpoint.to_string();
+        endpoint.push_str("/files/");
+        endpoint.push_str(&file.id);
+
+        let mut params = Vec::new();
+        // If Google specific file, we need to export
+        if file.mime_type.starts_with("application/vnd.google-apps") {
+            endpoint.push_str("/export");
+            let export_type = match file.mime_type.as_str() {
+                "application/vnd.google-apps.document" => "text/plain",
+                // Excel
+                "application/vnd.google-apps.spreadsheet" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "application/vnd.google-apps.presentation" => "text/plain",
+                _ => {
+                    return Err(anyhow!("Unsupported file type"));
+                }
+            };
+
+            params.push(("mimeType".to_string(), export_type.into()));
+        } else {
+            params.push(("alt".to_string(), "media".to_string()));
+        }
+
+        let resp = self.call(&endpoint, &params).await?;
+        let path = Path::new(&file.id);
+        let mut file = std::fs::File::create(path)?;
+        let mut content = Cursor::new(resp.bytes().await?);
+        std::io::copy(&mut content, &mut file)?;
+
+        Ok(path.to_path_buf())
+    }
+
     pub async fn list_files(&mut self) -> Result<Files> {
         let mut endpoint = self.endpoint.to_string();
         endpoint.push_str("/files");
@@ -181,7 +215,7 @@ impl GoogClient {
         }
     }
 
-    pub async fn get_file(&mut self, id: &str) -> Result<File> {
+    pub async fn get_file_metadata(&mut self, id: &str) -> Result<File> {
         let mut endpoint = self.endpoint.to_string();
         endpoint.push_str("/files/");
         endpoint.push_str(id);

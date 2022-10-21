@@ -51,17 +51,15 @@ async fn main() -> anyhow::Result<()> {
 
     let mut count = 0;
     for file in files.files {
-        // NOTE: None of the timestamps seem like they're available but the sort
-        // works. Name of the file exists, and being able to pull data about the file
-        // works as well.
-        // println!("{}- {}", file.name, file.mime_type);
-        // if let Ok(content) = client.get_file("adfadf").await {
-        //     println!("{:?}", content);
-        // }
         println!("{:?}", file);
-        match client.get_file(&file.id).await {
-            Ok(content) => println!("details: {:?}", content),
-            Err(err) => println!("{}", err.to_string())
+        match client.get_file_metadata(&file.id).await {
+            Ok(content) => {
+                println!("details: {:?}", content);
+                if let Ok(path) = client.download_file(&file).await {
+                    println!("downloaded to: {}", path.display());
+                }
+            }
+            Err(err) => println!("{}", err),
         }
 
         count += 1;

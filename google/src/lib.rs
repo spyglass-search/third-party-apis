@@ -3,6 +3,7 @@ use bytes::Bytes;
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpListener;
+use std::path::PathBuf;
 
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
@@ -18,7 +19,6 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 const API_ENDPOINT: &str = "https://www.googleapis.com/drive/v3";
-const SAVED_CREDS: &str = "saved.json";
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Credentials {
@@ -42,8 +42,8 @@ impl Credentials {
         self.token = token.clone();
     }
 
-    pub fn save(&self) -> Result<()> {
-        std::fs::write(SAVED_CREDS, serde_json::to_string(self)?)?;
+    pub fn save_to_file(&self, path: PathBuf) -> Result<()> {
+        std::fs::write(path, serde_json::to_string(self)?)?;
         Ok(())
     }
 }

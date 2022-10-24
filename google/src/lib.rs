@@ -1,7 +1,8 @@
+use bytes::Bytes;
+
 use std::collections::HashMap;
-use std::io::{BufRead, BufReader, Cursor, Write};
+use std::io::{BufRead, BufReader, Write};
 use std::net::TcpListener;
-use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
@@ -167,7 +168,7 @@ impl GoogClient {
         Ok(())
     }
 
-    pub async fn download_file(&mut self, file: &FileInfo) -> Result<PathBuf> {
+    pub async fn download_file(&mut self, file: &FileInfo) -> Result<Bytes> {
         let mut endpoint = self.endpoint.to_string();
         endpoint.push_str("/files/");
         endpoint.push_str(&file.id);
@@ -179,7 +180,9 @@ impl GoogClient {
             let export_type = match file.mime_type.as_str() {
                 "application/vnd.google-apps.document" => "text/plain",
                 // Excel
-                "application/vnd.google-apps.spreadsheet" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "application/vnd.google-apps.spreadsheet" => {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                }
                 "application/vnd.google-apps.presentation" => "text/plain",
                 _ => {
                     return Err(anyhow!("Unsupported file type"));
@@ -192,12 +195,7 @@ impl GoogClient {
         }
 
         let resp = self.call(&endpoint, &params).await?;
-        let path = Path::new(&file.id);
-        let mut file = std::fs::File::create(path)?;
-        let mut content = Cursor::new(resp.bytes().await?);
-        std::io::copy(&mut content, &mut file)?;
-
-        Ok(path.to_path_buf())
+        Ok(resp.bytes().await?)
     }
 
     pub async fn list_files(&mut self) -> Result<Files> {

@@ -340,6 +340,7 @@ dependencies = [
  "chrono",
  "dotenv",
  "dotenv_codegen",
+ "log",
  "oauth2",
  "reqwest",
  "serde",

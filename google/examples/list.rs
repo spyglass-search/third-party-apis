@@ -21,30 +21,13 @@ async fn main() -> anyhow::Result<()> {
     let google_client_id = dotenv!("GOOGLE_CLIENT_ID");
     let google_client_secret = dotenv!("GOOGLE_CLIENT_SECRET");
 
-    let path = Path::new(SAVED_CREDS);
-
     let mut client = GoogClient::new(
         google_client_id,
         google_client_secret,
         REDIRECT_URL,
         Default::default(),
     )?;
-
-    let credentials = if path.exists() {
-        let saved: Credentials = serde_json::from_str(&std::fs::read_to_string(path).unwrap())
-            .expect("Unable to deserialize token");
-
-        saved
-    } else {
-        let token = get_token(&client).await.expect("Unable to request token");
-
-        let mut saved = Credentials::default();
-        saved.refresh_token(&token);
-        let _ = saved.save_to_file(path.to_path_buf());
-
-        saved
-    };
-    let _ = client.set_credentials(&credentials);
+    load_credentials(&mut client).await;
 
     let files = client.list_files().await?;
 
@@ -57,8 +40,9 @@ async fn main() -> anyhow::Result<()> {
                 if let Ok(content) = client.download_file(&file).await {
                     println!("read {} bytes", content.len());
                 }
+                println!("----------")
             }
-            Err(err) => println!("{}", err),
+            Err(err) => println!("Unable to get file data: {}", err),
         }
 
         count += 1;
@@ -67,9 +51,29 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
-    println!("Number of files: {}", count);
-
     Ok(())
+}
+
+pub async fn load_credentials(client: &mut GoogClient) {
+    let path = Path::new(SAVED_CREDS);
+
+    // Load from file system (if exists) or run through token authorization process.
+    let credentials = if path.exists() {
+        let saved: Credentials = serde_json::from_str(&std::fs::read_to_string(path).unwrap())
+            .expect("Unable to deserialize token");
+
+        saved
+    } else {
+        let token = get_token(client).await.expect("Unable to request token");
+
+        let mut saved = Credentials::default();
+        saved.refresh_token(&token);
+        let _ = saved.save_to_file(path.to_path_buf());
+
+        saved
+    };
+
+    let _ = client.set_credentials(&credentials);
 }
 
 pub async fn get_token(client: &GoogClient) -> Option<BasicTokenResponse> {

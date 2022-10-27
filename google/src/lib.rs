@@ -176,14 +176,16 @@ impl GoogClient {
         &self,
         code: &str,
         pkce_verifier: &str,
-    ) -> Option<BasicTokenResponse> {
+    ) -> Result<BasicTokenResponse> {
         let code = AuthorizationCode::new(code.to_owned());
 
-        self.oauth
+        match self.oauth
             .exchange_code(code)
             .set_pkce_verifier(PkceCodeVerifier::new(pkce_verifier.to_owned()))
             .request_async(async_http_client)
-            .await
-            .ok()
+            .await {
+                Ok(val) => Ok(val),
+                Err(err) => Err(anyhow!(err.to_string()))
+            }
     }
 }

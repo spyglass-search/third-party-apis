@@ -5,8 +5,9 @@ use oauth2::basic::BasicClient;
 use oauth2::TokenResponse;
 use reqwest::Client;
 // Alternatively, this can be oauth2::curl::http_client or a custom.
+use oauth2::basic::BasicTokenResponse;
 use oauth2::reqwest::async_http_client;
-use oauth2::{CsrfToken, PkceCodeChallenge, Scope};
+use oauth2::{AuthorizationCode, CsrfToken, PkceCodeChallenge, PkceCodeVerifier, Scope};
 use url::Url;
 
 mod auth;
@@ -169,5 +170,20 @@ impl GoogClient {
             pkce_challenge: pkce_code_challenge,
             pkce_verifier: pkce_code_verifier.secret().to_string(),
         }
+    }
+
+    pub async fn token_exchange(
+        &self,
+        code: &str,
+        pkce_verifier: &str,
+    ) -> Option<BasicTokenResponse> {
+        let code = AuthorizationCode::new(code.to_owned());
+
+        self.oauth
+            .exchange_code(code)
+            .set_pkce_verifier(PkceCodeVerifier::new(pkce_verifier.to_owned()))
+            .request_async(async_http_client)
+            .await
+            .ok()
     }
 }

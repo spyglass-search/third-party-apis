@@ -4,9 +4,7 @@ use std::path::Path;
 
 use dotenv::dotenv;
 use dotenv_codegen::dotenv;
-use oauth2::basic::BasicTokenResponse;
-use oauth2::reqwest::async_http_client;
-use oauth2::{AuthorizationCode, CsrfToken, PkceCodeVerifier};
+use oauth2::CsrfToken;
 use url::Url;
 
 use libgoog::{Credentials, GoogClient};
@@ -64,7 +62,11 @@ pub async fn load_credentials(client: &mut GoogClient) {
 
         saved
     } else {
-        let token = get_token(client).await.expect("Unable to request token");
+        let (code, pkce_verifier) = get_token(client).await.expect("Unable to request token");
+        let token = client
+            .token_exchange(&code, &pkce_verifier)
+            .await
+            .expect("Unable to exchange code for token");
 
         let mut saved = Credentials::default();
         saved.refresh_token(&token);
@@ -76,7 +78,7 @@ pub async fn load_credentials(client: &mut GoogClient) {
     let _ = client.set_credentials(&credentials);
 }
 
-pub async fn get_token(client: &GoogClient) -> Option<BasicTokenResponse> {
+pub async fn get_token(client: &GoogClient) -> Option<(String, String)> {
     let request = client.authorize();
     println!("Open this URL in your browser:\n{}\n", request.url);
 
@@ -103,7 +105,7 @@ pub async fn get_token(client: &GoogClient) -> Option<BasicTokenResponse> {
                 .unwrap();
 
             let (_, value) = code_pair;
-            code = AuthorizationCode::new(value.into_owned());
+            code = value.into_owned();
 
             let state_pair = url
                 .query_pairs()
@@ -125,21 +127,14 @@ pub async fn get_token(client: &GoogClient) -> Option<BasicTokenResponse> {
         );
         stream.write_all(response.as_bytes()).unwrap();
 
-        println!("Google returned the following code:\n{}\n", code.secret());
+        println!("Google returned the following code:\n{}\n", code);
         println!(
             "Google returned the following state:\n{} (expected `{}`)\n",
             state.secret(),
             request.csrf_token.secret()
         );
 
-        // Exchange the code with a token.
-        let token_resp = client
-            .oauth
-            .exchange_code(code)
-            .set_pkce_verifier(PkceCodeVerifier::new(request.pkce_verifier.clone()))
-            .request_async(async_http_client);
-
-        token_resp.await.ok()
+        Some((code, request.pkce_verifier))
     } else {
         None
     }

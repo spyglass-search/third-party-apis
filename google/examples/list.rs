@@ -7,7 +7,7 @@ use dotenv_codegen::dotenv;
 use oauth2::CsrfToken;
 use url::Url;
 
-use libgoog::{Credentials, GoogClient};
+use libgoog::{Credentials, GoogClient, types::AuthScope};
 
 const SAVED_CREDS: &str = "saved.json";
 const REDIRECT_URL: &str = "http://localhost:8080";
@@ -79,7 +79,9 @@ pub async fn load_credentials(client: &mut GoogClient) {
 }
 
 pub async fn get_token(client: &GoogClient) -> Option<(String, String)> {
-    let request = client.authorize();
+    let scopes = vec![AuthScope::Drive, AuthScope::DriveMetadata];
+
+    let request = client.authorize(&scopes);
     println!("Open this URL in your browser:\n{}\n", request.url);
 
     // A very naive implementation of the redirect server.

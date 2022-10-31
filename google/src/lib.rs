@@ -1,3 +1,4 @@
+use std::str::FromStr;
 use bytes::Bytes;
 
 use anyhow::{anyhow, Result};
@@ -10,10 +11,10 @@ use oauth2::reqwest::async_http_client;
 use oauth2::{AuthorizationCode, CsrfToken, PkceCodeChallenge, PkceCodeVerifier, Scope};
 use url::Url;
 
-mod auth;
+pub mod auth;
 pub use auth::{auth_http_client, oauth_client, AuthorizationRequest, Credentials};
-mod types;
-use types::{File, FileInfo, Files};
+pub mod types;
+use types::{AuthScope, File, FileInfo, Files, FileType};
 
 const API_ENDPOINT: &str = "https://www.googleapis.com/drive/v3";
 const AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -91,13 +92,13 @@ impl GoogClient {
         // If Google specific file, we need to export
         if file.mime_type.starts_with("application/vnd.google-apps") {
             endpoint.push_str("/export");
-            let export_type = match file.mime_type.as_str() {
-                "application/vnd.google-apps.document" => "text/plain",
+            let export_type = match FileType::from_str(file.mime_type.as_str()) {
+                Ok(FileType::Document) => "text/plain",
                 // Excel
-                "application/vnd.google-apps.spreadsheet" => {
+                Ok(FileType::Spreadsheet) => {
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 }
-                "application/vnd.google-apps.presentation" => "text/plain",
+                Ok(FileType::Presentation) => "text/plain",
                 _ => {
                     return Err(anyhow!("Unsupported file type"));
                 }
@@ -143,24 +144,19 @@ impl GoogClient {
         }
     }
 
-    pub fn authorize(&self) -> AuthorizationRequest {
+    pub fn authorize(&self, scopes: &[AuthScope]) -> AuthorizationRequest {
         // Google supports Proof Key for Code Exchange (PKCE - https://oauth.net/2/pkce/).
         // Create a PKCE code verifier and SHA-256 encode it as a code challenge.
         let (pkce_code_challenge, pkce_code_verifier) = PkceCodeChallenge::new_random_sha256();
 
+        let scopes = scopes.iter()
+            .map(|s| Scope::new(s.as_ref().to_string()))
+            .collect::<Vec<Scope>>();
+
         // Generate the authorization URL to which we'll redirect the user.
-        let (authorize_url, csrf_state) = self
-            .oauth
+        let (authorize_url, csrf_state) = self.oauth
             .authorize_url(CsrfToken::new_random)
-            .add_scope(Scope::new(
-                "https://www.googleapis.com/auth/drive.readonly".to_string(),
-            ))
-            .add_scope(Scope::new(
-                "https://www.googleapis.com/auth/drive.metadata.readonly".to_string(),
-            ))
-            .add_scope(Scope::new(
-                "https://www.googleapis.com/auth/drive.activity.readonly".to_string(),
-            ))
+            .add_scopes(scopes)
             .set_pkce_challenge(pkce_code_challenge.clone())
             .url();
 

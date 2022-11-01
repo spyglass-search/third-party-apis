@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use strum_macros::{AsRefStr, EnumString};
 use std::collections::HashMap;
+use strum_macros::{AsRefStr, EnumString};
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
@@ -55,7 +55,7 @@ pub enum AuthScope {
     #[strum(serialize = "https://www.googleapis.com/auth/photoslibrary.readonly")]
     Photos,
     #[strum(serialize = "https://www.googleapis.com/auth/youtube.readonly")]
-    YouTube
+    YouTube,
 }
 
 #[derive(AsRefStr, Debug, EnumString, PartialEq, Eq)]
@@ -65,5 +65,5 @@ pub enum FileType {
     #[strum(serialize = "application/vnd.google-apps.spreadsheet")]
     Spreadsheet,
     #[strum(serialize = "application/vnd.google-apps.presentation")]
-    Presentation
+    Presentation,
 }

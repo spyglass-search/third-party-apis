@@ -1,5 +1,5 @@
-use std::str::FromStr;
 use bytes::Bytes;
+use std::str::FromStr;
 
 use anyhow::{anyhow, Result};
 use oauth2::basic::BasicClient;
@@ -14,7 +14,7 @@ use url::Url;
 pub mod auth;
 pub use auth::{auth_http_client, oauth_client, AuthorizationRequest, Credentials};
 pub mod types;
-use types::{AuthScope, File, FileInfo, Files, FileType};
+use types::{AuthScope, File, FileInfo, FileType, Files};
 
 const API_ENDPOINT: &str = "https://www.googleapis.com/drive/v3";
 const AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -113,7 +113,11 @@ impl GoogClient {
         Ok(resp.bytes().await?)
     }
 
-    pub async fn list_files(&mut self, next_page: Option<String>) -> Result<Files> {
+    pub async fn list_files(
+        &mut self,
+        next_page: Option<String>,
+        query: Option<String>,
+    ) -> Result<Files> {
         let mut endpoint = self.endpoint.to_string();
         endpoint.push_str("/files");
 
@@ -122,6 +126,11 @@ impl GoogClient {
         } else {
             Vec::new()
         };
+
+        if let Some(query) = query {
+            params.push(("q".to_string(), query));
+        }
+
         params.push(("orderBy".to_string(), "viewedByMeTime desc".to_string()));
 
         let resp = self.call(&endpoint, &params).await?;
@@ -156,12 +165,14 @@ impl GoogClient {
         // Create a PKCE code verifier and SHA-256 encode it as a code challenge.
         let (pkce_code_challenge, pkce_code_verifier) = PkceCodeChallenge::new_random_sha256();
 
-        let scopes = scopes.iter()
+        let scopes = scopes
+            .iter()
             .map(|s| Scope::new(s.as_ref().to_string()))
             .collect::<Vec<Scope>>();
 
         // Generate the authorization URL to which we'll redirect the user.
-        let (authorize_url, csrf_state) = self.oauth
+        let (authorize_url, csrf_state) = self
+            .oauth
             .authorize_url(CsrfToken::new_random)
             .add_scopes(scopes)
             .set_pkce_challenge(pkce_code_challenge.clone())
@@ -182,13 +193,15 @@ impl GoogClient {
     ) -> Result<BasicTokenResponse> {
         let code = AuthorizationCode::new(code.to_owned());
 
-        match self.oauth
+        match self
+            .oauth
             .exchange_code(code)
             .set_pkce_verifier(PkceCodeVerifier::new(pkce_verifier.to_owned()))
             .request_async(async_http_client)
-            .await {
-                Ok(val) => Ok(val),
-                Err(err) => Err(anyhow!(err.to_string()))
-            }
+            .await
+        {
+            Ok(val) => Ok(val),
+            Err(err) => Err(anyhow!(err.to_string())),
+        }
     }
 }

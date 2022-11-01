@@ -7,7 +7,7 @@ use dotenv_codegen::dotenv;
 use oauth2::CsrfToken;
 use url::Url;
 
-use libgoog::{Credentials, GoogClient, types::AuthScope};
+use libgoog::{types::AuthScope, Credentials, GoogClient};
 
 const SAVED_CREDS: &str = "saved.json";
 const REDIRECT_URL: &str = "http://localhost:8080";

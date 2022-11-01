@@ -113,11 +113,17 @@ impl GoogClient {
         Ok(resp.bytes().await?)
     }
 
-    pub async fn list_files(&mut self) -> Result<Files> {
+    pub async fn list_files(&mut self, next_page: Option<String>) -> Result<Files> {
         let mut endpoint = self.endpoint.to_string();
         endpoint.push_str("/files");
 
-        let resp = self.call(&endpoint, &Vec::new()).await?;
+        let params = if let Some(next_page) = next_page {
+            vec![("pageToken".to_string(), next_page)]
+        } else {
+            Vec::new()
+        };
+
+        let resp = self.call(&endpoint, &params).await?;
 
         match resp.error_for_status() {
             Ok(resp) => match resp.json::<Files>().await {

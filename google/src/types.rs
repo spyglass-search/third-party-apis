@@ -20,7 +20,7 @@ pub struct File {
     pub web_view_link: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct FileInfo {
     pub kind: String,
     pub id: String,
@@ -32,7 +32,7 @@ pub struct FileInfo {
 #[derive(Deserialize, Serialize)]
 pub struct Files {
     #[serde(rename = "nextPageToken")]
-    pub next_page_token: String,
+    pub next_page_token: Option<String>,
     pub files: Vec<FileInfo>,
 }
 

@@ -27,9 +27,10 @@ async fn main() -> anyhow::Result<()> {
     )?;
     load_credentials(&mut client).await;
 
-    let files = client.list_files().await?;
+    let files = client.list_files(None).await?;
 
     let mut count = 0;
+    println!("{:?}", files.next_page_token);
     for file in files.files {
         println!("{:?}", file);
         match client.get_file_metadata(&file.id).await {

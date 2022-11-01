@@ -117,11 +117,12 @@ impl GoogClient {
         let mut endpoint = self.endpoint.to_string();
         endpoint.push_str("/files");
 
-        let params = if let Some(next_page) = next_page {
+        let mut params = if let Some(next_page) = next_page {
             vec![("pageToken".to_string(), next_page)]
         } else {
             Vec::new()
         };
+        params.push(("orderBy".to_string(), "viewedByMeTime desc".to_string()));
 
         let resp = self.call(&endpoint, &params).await?;
 

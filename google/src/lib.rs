@@ -21,11 +21,14 @@ const AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL: &str = "https://www.googleapis.com/oauth2/v3/token";
 const REVOKE_URL: &str = "https://oauth2.googleapis.com/revoke";
 
+pub type OnRefreshFn = Box<dyn FnMut(&Credentials) + Send + Sync + 'static>;
+
 pub struct GoogClient {
     endpoint: Url,
     http: Client,
     pub oauth: BasicClient,
     pub credentials: Credentials,
+    pub on_refresh: OnRefreshFn,
 }
 
 impl GoogClient {
@@ -40,7 +43,12 @@ impl GoogClient {
             http: auth_http_client(creds.access_token.secret())?,
             oauth: oauth_client(client_id, client_secret, redirect_url),
             credentials: creds,
+            on_refresh: Box::new(|_| {}),
         })
+    }
+
+    pub fn set_on_refresh(&mut self, callback: impl FnMut(&Credentials) + Send + Sync + 'static) {
+        self.on_refresh = Box::new(callback);
     }
 
     pub async fn call(
@@ -72,6 +80,8 @@ impl GoogClient {
 
             self.credentials.refresh_token(&new_token);
             self.http = auth_http_client(new_token.access_token().secret())?;
+            // Let any listeners know the credentials have been updated.
+            (self.on_refresh)(&self.credentials);
         }
 
         Ok(())

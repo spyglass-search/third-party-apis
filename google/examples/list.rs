@@ -14,6 +14,8 @@ const REDIRECT_URL: &str = "http://localhost:8080";
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    let path = Path::new(SAVED_CREDS);
+
     dotenv().ok();
 
     let google_client_id = dotenv!("GOOGLE_CLIENT_ID");
@@ -25,12 +27,26 @@ async fn main() -> anyhow::Result<()> {
         REDIRECT_URL,
         Default::default(),
     )?;
+    client.set_on_refresh(move |new_creds| {
+        println!(
+            "Received new access code: {}",
+            new_creds.access_token.secret()
+        );
+        // save new credentials.
+        let _ = new_creds.save_to_file(path.to_path_buf());
+    });
+
     load_credentials(&mut client).await;
 
     let files = client.list_files(None, None).await?;
 
     let mut count = 0;
-    println!("{:?}", files.next_page_token);
+    println!("------------------------------");
+    println!("next_page: {:?}", files.next_page_token);
+    println!("------------------------------");
+
+    println!("Listing some example files:");
+    println!("------------------------------");
     for file in files.files {
         println!("{:?}", file);
         match client.get_file_metadata(&file.id).await {

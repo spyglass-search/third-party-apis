@@ -36,9 +36,9 @@ async fn main() -> anyhow::Result<()> {
         match client.get_file_metadata(&file.id).await {
             Ok(content) => {
                 println!("details: {:?}", content);
-                if let Ok(content) = client.download_file(&file).await {
-                    println!("read {} bytes", content.len());
-                }
+                // if let Ok(content) = client.download_file(&file.id).await {
+                //     println!("read {} bytes", content.len());
+                // }
                 println!("----------")
             }
             Err(err) => println!("Unable to get file data: {}", err),

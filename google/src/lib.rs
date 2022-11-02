@@ -14,7 +14,7 @@ use url::Url;
 pub mod auth;
 pub use auth::{auth_http_client, oauth_client, AuthorizationRequest, Credentials};
 pub mod types;
-use types::{AuthScope, File, FileInfo, FileType, Files};
+use types::{AuthScope, File, FileType, Files};
 
 const API_ENDPOINT: &str = "https://www.googleapis.com/drive/v3";
 const AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -83,16 +83,20 @@ impl GoogClient {
         Ok(())
     }
 
-    pub async fn download_file(&mut self, file: &FileInfo) -> Result<Bytes> {
+    pub async fn download_file(&mut self, file_id: &str) -> Result<Bytes> {
         let mut endpoint = self.endpoint.to_string();
         endpoint.push_str("/files/");
-        endpoint.push_str(&file.id);
+        endpoint.push_str(file_id);
 
+        let file_info = self.get_file_metadata(file_id).await?;
         let mut params = Vec::new();
         // If Google specific file, we need to export
-        if file.mime_type.starts_with("application/vnd.google-apps") {
+        if file_info
+            .mime_type
+            .starts_with("application/vnd.google-apps")
+        {
             endpoint.push_str("/export");
-            let export_type = match FileType::from_str(file.mime_type.as_str()) {
+            let export_type = match FileType::from_str(file_info.mime_type.as_str()) {
                 Ok(FileType::Document) => "text/plain",
                 // Excel
                 Ok(FileType::Spreadsheet) => {

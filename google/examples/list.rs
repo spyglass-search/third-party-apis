@@ -27,7 +27,7 @@ async fn main() -> anyhow::Result<()> {
     )?;
     load_credentials(&mut client).await;
 
-    let files = client.list_files(None).await?;
+    let files = client.list_files(None, None).await?;
 
     let mut count = 0;
     println!("{:?}", files.next_page_token);

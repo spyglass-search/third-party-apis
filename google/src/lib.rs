@@ -14,7 +14,10 @@ use oauth2::{AuthorizationCode, CsrfToken, PkceCodeChallenge, PkceCodeVerifier, 
 pub mod auth;
 pub use auth::{auth_http_client, oauth_client, AuthorizationRequest, Credentials};
 pub mod types;
-use types::{AuthScope, CalendarListResponse, File, FileType, Files, ListCalendarEventsResponse};
+use types::{
+    AuthScope, CalendarEvent, CalendarListResponse, File, FileType, Files,
+    ListCalendarEventsResponse,
+};
 
 pub enum ClientType {
     Calendar,
@@ -152,6 +155,7 @@ impl GoogClient {
         Ok(resp.bytes().await?)
     }
 
+    /// Retrieve list of calendars for the authenticated user.
     pub async fn list_calendars(
         &mut self,
         next_page: Option<String>,
@@ -168,6 +172,8 @@ impl GoogClient {
         self.call_json(&endpoint, &params).await
     }
 
+    /// Retrieve all events for a calendar.
+    /// Use the id "primary" for the user's primary calendar.
     pub async fn list_calendar_events(
         &mut self,
         calendar_id: &str,
@@ -186,6 +192,18 @@ impl GoogClient {
         params.push(("singleEvents".to_string(), "true".to_string()));
 
         self.call_json(&endpoint, &params).await
+    }
+
+    /// Retrieve a single event from a calendar.
+    /// Use the id "primary" for the user's primary calendar.
+    pub async fn get_calendar_event(
+        &mut self,
+        calendar_id: &str,
+        event_id: &str,
+    ) -> Result<CalendarEvent> {
+        let mut endpoint = self.endpoint.to_string();
+        endpoint.push_str(&format!("/calendars/{}/events/{}", calendar_id, event_id));
+        self.call_json(&endpoint, &Vec::new()).await
     }
 
     pub async fn list_files(

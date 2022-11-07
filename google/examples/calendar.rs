@@ -63,15 +63,16 @@ async fn main() -> anyhow::Result<()> {
         println!("CALENDAR: {} ({})", cal.summary, cal.id);
         if let Ok(events) = client.list_calendar_events(&cal.id, None).await {
             for event in events.items.iter().take(5) {
-                println!(
-                    "EVENT: {} {} ({} attendees)",
-                    event
-                        .start
-                        .date_time
-                        .map_or(event.start.date.clone(), |d| d.to_rfc3339()),
-                    event.summary,
-                    event.attendees.len()
-                );
+                if let Ok(data) = client.get_calendar_event(&cal.id, &event.id).await {
+                    println!(
+                        "EVENT: {} {} ({} attendees)",
+                        data.start
+                            .date_time
+                            .map_or(event.start.date.clone(), |d| d.to_rfc3339()),
+                        data.summary,
+                        data.attendees.len()
+                    );
+                }
             }
         }
         println!("\n------------------------------");
@@ -107,7 +108,7 @@ pub async fn load_credentials(client: &mut GoogClient) {
 }
 
 pub async fn get_token(client: &GoogClient) -> Option<(String, String)> {
-    let scopes = vec![AuthScope::Calendar, AuthScope::CalendarEvents];
+    let scopes = vec![AuthScope::Calendar];
 
     let request = client.authorize(&scopes);
     println!("Open this URL in your browser:\n{}\n", request.url);

@@ -39,6 +39,9 @@ async fn main() -> anyhow::Result<()> {
 
     load_credentials(&mut client).await;
 
+    let user = client.get_user().await;
+    println!("AUTHORIZED USER: {:?}", user);
+
     let cals = client.list_calendars(None).await?;
     println!("------------------------------");
     println!("next_page: {:?}", cals.next_page_token);
@@ -108,7 +111,7 @@ pub async fn load_credentials(client: &mut GoogClient) {
 }
 
 pub async fn get_token(client: &GoogClient) -> Option<(String, String)> {
-    let scopes = vec![AuthScope::Calendar];
+    let scopes = vec![AuthScope::Email, AuthScope::Calendar];
 
     let request = client.authorize(&scopes);
     println!("Open this URL in your browser:\n{}\n", request.url);

@@ -15,7 +15,7 @@ pub mod auth;
 pub use auth::{auth_http_client, oauth_client, AuthorizationRequest, Credentials};
 pub mod types;
 use types::{
-    AuthScope, CalendarEvent, CalendarListResponse, File, FileType, Files,
+    AuthScope, CalendarEvent, CalendarListResponse, File, FileType, Files, GoogUser,
     ListCalendarEventsResponse,
 };
 
@@ -235,6 +235,12 @@ impl GoogClient {
 
         let params = vec![("fields".to_string(), "*".to_string())];
         self.call_json(&endpoint, &params).await
+    }
+
+    /// User associated with this credential
+    pub async fn get_user(&mut self) -> Result<GoogUser> {
+        let endpoint = "https://www.googleapis.com/oauth2/v3/userinfo";
+        self.call_json(endpoint, &Vec::new()).await
     }
 
     pub fn authorize(&self, scopes: &[AuthScope]) -> AuthorizationRequest {

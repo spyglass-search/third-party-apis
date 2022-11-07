@@ -132,6 +132,9 @@ pub enum AuthScope {
     DriveActivity,
     #[strum(serialize = "https://www.googleapis.com/auth/drive.metadata.readonly")]
     DriveMetadata,
+    /// Email associated w/ the account.
+    #[strum(serialize = "email")]
+    Email,
     #[strum(serialize = "https://www.googleapis.com/auth/gmail.readonly")]
     Gmail,
     #[strum(serialize = "https://www.googleapis.com/auth/gmail.metadata")]
@@ -150,4 +153,10 @@ pub enum FileType {
     Spreadsheet,
     #[strum(serialize = "application/vnd.google-apps.presentation")]
     Presentation,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct GoogUser {
+    pub email: String,
 }

@@ -7,7 +7,7 @@ use dotenv_codegen::dotenv;
 use oauth2::CsrfToken;
 use url::Url;
 
-use libgoog::{types::AuthScope, Credentials, GoogClient};
+use libgoog::{types::AuthScope, ClientType, Credentials, GoogClient};
 
 const SAVED_CREDS: &str = "saved.json";
 const REDIRECT_URL: &str = "http://localhost:8080";
@@ -22,6 +22,7 @@ async fn main() -> anyhow::Result<()> {
     let google_client_secret = dotenv!("GOOGLE_CLIENT_SECRET");
 
     let mut client = GoogClient::new(
+        ClientType::Drive,
         google_client_id,
         google_client_secret,
         REDIRECT_URL,
@@ -40,14 +41,13 @@ async fn main() -> anyhow::Result<()> {
 
     let files = client.list_files(None, None).await?;
 
-    let mut count = 0;
     println!("------------------------------");
     println!("next_page: {:?}", files.next_page_token);
     println!("------------------------------");
 
     println!("Listing some example files:");
     println!("------------------------------");
-    for file in files.files {
+    for file in files.files.iter().take(5) {
         println!("{:?}", file);
         match client.get_file_metadata(&file.id).await {
             Ok(content) => {
@@ -58,11 +58,6 @@ async fn main() -> anyhow::Result<()> {
                 println!("----------")
             }
             Err(err) => println!("Unable to get file data: {}", err),
-        }
-
-        count += 1;
-        if count >= 5 {
-            break;
         }
     }
 

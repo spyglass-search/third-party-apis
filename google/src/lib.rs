@@ -1,4 +1,5 @@
 use bytes::Bytes;
+use serde::de::DeserializeOwned;
 use std::str::FromStr;
 
 use anyhow::{anyhow, Result};
@@ -9,14 +10,17 @@ use reqwest::Client;
 use oauth2::basic::BasicTokenResponse;
 use oauth2::reqwest::async_http_client;
 use oauth2::{AuthorizationCode, CsrfToken, PkceCodeChallenge, PkceCodeVerifier, Scope};
-use url::Url;
 
 pub mod auth;
 pub use auth::{auth_http_client, oauth_client, AuthorizationRequest, Credentials};
 pub mod types;
-use types::{AuthScope, File, FileType, Files};
+use types::{AuthScope, CalendarListResponse, File, FileType, Files, ListCalendarEventsResponse};
 
-const API_ENDPOINT: &str = "https://www.googleapis.com/drive/v3";
+pub enum ClientType {
+    Calendar,
+    Drive,
+}
+
 const AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL: &str = "https://www.googleapis.com/oauth2/v3/token";
 const REVOKE_URL: &str = "https://oauth2.googleapis.com/revoke";
@@ -24,7 +28,7 @@ const REVOKE_URL: &str = "https://oauth2.googleapis.com/revoke";
 pub type OnRefreshFn = Box<dyn FnMut(&Credentials) + Send + Sync + 'static>;
 
 pub struct GoogClient {
-    endpoint: Url,
+    endpoint: String,
     http: Client,
     pub oauth: BasicClient,
     pub credentials: Credentials,
@@ -33,13 +37,19 @@ pub struct GoogClient {
 
 impl GoogClient {
     pub fn new(
+        client_type: ClientType,
         client_id: &str,
         client_secret: &str,
         redirect_url: &str,
         creds: Credentials,
     ) -> anyhow::Result<Self> {
+        let endpoint = match client_type {
+            ClientType::Calendar => "https://www.googleapis.com/calendar/v3".to_string(),
+            ClientType::Drive => "https://www.googleapis.com/drive/v3".to_string(),
+        };
+
         Ok(GoogClient {
-            endpoint: Url::parse(API_ENDPOINT).expect("Invalid API endpoint"),
+            endpoint,
             http: auth_http_client(creds.access_token.secret())?,
             oauth: oauth_client(client_id, client_secret, redirect_url),
             credentials: creds,
@@ -66,6 +76,21 @@ impl GoogClient {
 
         match self.http.get(endpoint).query(query).send().await {
             Ok(resp) => Ok(resp),
+            Err(err) => Err(anyhow!(err.to_string())),
+        }
+    }
+
+    pub async fn call_json<T: DeserializeOwned>(
+        &mut self,
+        endpoint: &str,
+        query: &Vec<(String, String)>,
+    ) -> Result<T> {
+        let resp = self.call(endpoint, query).await?;
+        match resp.error_for_status() {
+            Ok(resp) => match resp.json::<T>().await {
+                Ok(res) => Ok(res),
+                Err(err) => Err(anyhow!(err.to_string())),
+            },
             Err(err) => Err(anyhow!(err.to_string())),
         }
     }
@@ -127,6 +152,42 @@ impl GoogClient {
         Ok(resp.bytes().await?)
     }
 
+    pub async fn list_calendars(
+        &mut self,
+        next_page: Option<String>,
+    ) -> Result<CalendarListResponse> {
+        let mut endpoint = self.endpoint.to_string();
+        endpoint.push_str("/users/me/calendarList");
+
+        let params = if let Some(next_page) = next_page {
+            vec![("pageToken".to_string(), next_page)]
+        } else {
+            Vec::new()
+        };
+
+        self.call_json(&endpoint, &params).await
+    }
+
+    pub async fn list_calendar_events(
+        &mut self,
+        calendar_id: &str,
+        next_page: Option<String>,
+    ) -> Result<ListCalendarEventsResponse> {
+        let mut endpoint = self.endpoint.to_string();
+        endpoint.push_str(&format!("/calendars/{}/events", calendar_id));
+
+        let mut params = if let Some(next_page) = next_page {
+            vec![("pageToken".to_string(), next_page)]
+        } else {
+            Vec::new()
+        };
+
+        params.push(("orderBy".to_string(), "startTime".to_string()));
+        params.push(("singleEvents".to_string(), "true".to_string()));
+
+        self.call_json(&endpoint, &params).await
+    }
+
     pub async fn list_files(
         &mut self,
         next_page: Option<String>,
@@ -146,16 +207,7 @@ impl GoogClient {
         }
 
         params.push(("orderBy".to_string(), "viewedByMeTime desc".to_string()));
-
-        let resp = self.call(&endpoint, &params).await?;
-
-        match resp.error_for_status() {
-            Ok(resp) => match resp.json::<Files>().await {
-                Ok(res) => Ok(res),
-                Err(err) => Err(anyhow!(err.to_string())),
-            },
-            Err(err) => Err(anyhow!(err.to_string())),
-        }
+        self.call_json(&endpoint, &params).await
     }
 
     pub async fn get_file_metadata(&mut self, id: &str) -> Result<File> {
@@ -164,14 +216,7 @@ impl GoogClient {
         endpoint.push_str(id);
 
         let params = vec![("fields".to_string(), "*".to_string())];
-        let resp = self.call(&endpoint, &params).await?;
-        match resp.error_for_status() {
-            Ok(resp) => match resp.json::<File>().await {
-                Ok(res) => Ok(res),
-                Err(err) => Err(anyhow!(err.to_string())),
-            },
-            Err(err) => Err(anyhow!(err.to_string())),
-        }
+        self.call_json(&endpoint, &params).await
     }
 
     pub fn authorize(&self, scopes: &[AuthScope]) -> AuthorizationRequest {

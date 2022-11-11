@@ -233,7 +233,26 @@ impl GoogClient {
         endpoint.push_str("/files/");
         endpoint.push_str(id);
 
-        let params = vec![("fields".to_string(), "*".to_string())];
+        let params = vec![(
+            "fields".to_string(),
+            vec![
+                "kind",
+                "id",
+                "name",
+                "mimeType",
+                "description",
+                "starred",
+                "parents",
+                "version",
+                "sharingUser",
+                "lastModifyingUser",
+                "webViewLink",
+                "createdTime",
+                "modifiedTime",
+                "sharedWithMeTime",
+            ]
+            .join(","),
+        )];
         self.call_json(&endpoint, &params).await
     }
 

@@ -1,6 +1,5 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use strum_macros::{AsRefStr, EnumString};
 
 #[derive(Debug, Default, Deserialize, Serialize)]
@@ -86,6 +85,17 @@ pub struct CalendarListResponse {
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
+pub struct FileUser {
+    display_name: String,
+    // The email address of the user. This may not be present in certain contexts if
+    // the user has not made their email address visible to the user.
+    email_address: Option<String>,
+    #[serde(rename = "me")]
+    is_me: bool,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize)]
+#[serde(default, rename_all = "camelCase")]
 pub struct File {
     pub kind: String,
     pub id: String,
@@ -93,13 +103,15 @@ pub struct File {
     pub mime_type: String,
     pub description: String,
     pub starred: bool,
-    pub trashed: bool,
     pub parents: Vec<String>,
-    pub properties: HashMap<String, String>,
-    pub spaces: Vec<String>,
     pub version: String,
-    pub web_content_link: String,
+    pub owners: Vec<FileUser>,
+    pub sharing_user: FileUser,
+    pub last_modifying_user: FileUser,
     pub web_view_link: String,
+    pub created_time: DateTime<Utc>,
+    pub modified_time: Option<DateTime<Utc>>,
+    pub shared_with_me_time: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

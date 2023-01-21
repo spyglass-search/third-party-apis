@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use anyhow::Result;
+use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use oauth2::basic::{BasicClient, BasicTokenResponse};
 use oauth2::TokenResponse;
@@ -10,6 +11,21 @@ use oauth2::{CsrfToken, PkceCodeChallenge};
 use reqwest::{header, Client};
 use serde::{Deserialize, Serialize};
 use url::Url;
+
+pub mod helpers;
+
+pub type OnRefreshFn = Box<dyn FnMut(&Credentials) + Send + Sync + 'static>;
+
+#[async_trait]
+pub trait ApiClient {
+    fn id(&self) -> String;
+    fn authorize(&self, scopes: &[String]) -> AuthorizationRequest;
+    /// Update credentials used by this ApiClient
+    fn set_credentials(&mut self, credentials: &Credentials) -> Result<()>;
+    fn set_on_refresh(&mut self, callback: impl FnMut(&Credentials) + Send + Sync + 'static);
+    /// Handle a token exchange
+    async fn token_exchange(&self, code: &str, pkce_verifier: &str) -> Result<BasicTokenResponse>;
+}
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Credentials {
@@ -72,6 +88,7 @@ pub fn auth_http_client(token: &str) -> Result<Client> {
         .build()?)
 }
 
+#[derive(Default)]
 pub struct OAuthParams {
     pub auth_url: String,
     pub token_url: Option<String>,

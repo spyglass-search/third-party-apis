@@ -1,4 +1,5 @@
 use bytes::Bytes;
+use libauth::OAuthParams;
 use serde::de::DeserializeOwned;
 use std::str::FromStr;
 
@@ -11,8 +12,7 @@ use oauth2::basic::BasicTokenResponse;
 use oauth2::reqwest::async_http_client;
 use oauth2::{AuthorizationCode, CsrfToken, PkceCodeChallenge, PkceCodeVerifier, Scope};
 
-pub mod auth;
-pub use auth::{auth_http_client, oauth_client, AuthorizationRequest, Credentials};
+pub use libauth::{auth_http_client, oauth_client, AuthorizationRequest, Credentials};
 pub mod types;
 use types::{
     AuthScope, CalendarEvent, CalendarListResponse, File, FileType, Files, GoogUser,
@@ -51,10 +51,19 @@ impl GoogClient {
             ClientType::Drive => "https://www.googleapis.com/drive/v3".to_string(),
         };
 
+        let params = OAuthParams {
+            client_id: client_id.to_string(),
+            client_secret: Some(client_secret.to_string()),
+            redirect_url: Some(redirect_url.to_string()),
+            auth_url: AUTH_URL.to_string(),
+            token_url: Some(TOKEN_URL.to_string()),
+            revoke_url: Some(REVOKE_URL.to_string()),
+        };
+
         Ok(GoogClient {
             endpoint,
             http: auth_http_client(creds.access_token.secret())?,
-            oauth: oauth_client(client_id, client_secret, redirect_url),
+            oauth: oauth_client(&params),
             credentials: creds,
             on_refresh: Box::new(|_| {}),
         })

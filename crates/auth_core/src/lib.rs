@@ -11,8 +11,6 @@ use reqwest::{header, Client};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::{AUTH_URL, REVOKE_URL, TOKEN_URL};
-
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Credentials {
     pub requested_at: DateTime<Utc>,
@@ -74,22 +72,40 @@ pub fn auth_http_client(token: &str) -> Result<Client> {
         .build()?)
 }
 
-pub fn oauth_client(client_id: &str, client_secret: &str, redirect_url: &str) -> BasicClient {
-    let auth_url = AuthUrl::new(AUTH_URL.to_string()).expect("Invalid authorization endpoint URL");
+pub struct OAuthParams {
+    pub auth_url: String,
+    pub token_url: Option<String>,
+    pub revoke_url: Option<String>,
+    pub client_id: String,
+    pub client_secret: Option<String>,
+    pub redirect_url: Option<String>,
+}
 
-    let token_url = TokenUrl::new(TOKEN_URL.to_string()).expect("Invalid token endpoint URL");
+pub fn oauth_client(params: &OAuthParams) -> BasicClient {
+    let auth_url =
+        AuthUrl::new(params.auth_url.clone()).expect("Invalid authorization endpoint URL");
 
-    BasicClient::new(
-        ClientId::new(client_id.into()),
-        Some(ClientSecret::new(client_secret.into())),
+    let client_secret = params.client_secret.clone();
+    let token_url = params.token_url.clone();
+
+    let mut client = BasicClient::new(
+        ClientId::new(params.client_id.clone()),
+        client_secret.map(|s| ClientSecret::new(s)),
         auth_url,
-        Some(token_url),
-    )
-    // This example will be running its own server at localhost:8080.
-    // See below for the server implementation.
-    .set_redirect_uri(RedirectUrl::new(redirect_url.to_string()).expect("Invalid redirect URL"))
-    // Google supports OAuth 2.0 Token Revocation (RFC-7009)
-    .set_revocation_uri(
-        RevocationUrl::new(REVOKE_URL.to_string()).expect("Invalid revocation endpoint URL"),
-    )
+        token_url.map(|url| TokenUrl::new(url).expect("Invalid token endpoint URL")),
+    );
+
+    if let Some(redirect_url) = &params.redirect_url {
+        client = client.set_redirect_uri(
+            RedirectUrl::new(redirect_url.to_string()).expect("Invalid redirect URL"),
+        );
+    }
+
+    if let Some(revoke_url) = &params.revoke_url {
+        client = client.set_revocation_uri(
+            RevocationUrl::new(revoke_url.to_string()).expect("Invalid revocation endpoint URL"),
+        );
+    }
+
+    client
 }

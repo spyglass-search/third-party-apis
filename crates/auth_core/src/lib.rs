@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use oauth2::basic::{BasicClient, BasicTokenResponse};
@@ -9,22 +9,74 @@ pub use oauth2::{AccessToken, RefreshToken};
 use oauth2::{AuthUrl, ClientId, ClientSecret, RedirectUrl, RevocationUrl, TokenUrl};
 use oauth2::{CsrfToken, PkceCodeChallenge};
 use reqwest::{header, Client};
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use url::Url;
 
 pub mod helpers;
+const DEFAULT_USER_AGENT: &str = "spyglass-search";
 
 pub type OnRefreshFn = Box<dyn FnMut(&Credentials) + Send + Sync + 'static>;
 
 #[async_trait]
 pub trait ApiClient {
     fn id(&self) -> String;
+    /// Begin OAuth process w/ list of scopes
     fn authorize(&self, scopes: &[String]) -> AuthorizationRequest;
+    /// Get the current credentials
+    fn credentials(&self) -> Credentials;
+    // Get an HTTP client primed with the current credentials
+    fn http_client(&self) -> Client;
+
     /// Update credentials used by this ApiClient
     fn set_credentials(&mut self, credentials: &Credentials) -> Result<()>;
     fn set_on_refresh(&mut self, callback: impl FnMut(&Credentials) + Send + Sync + 'static);
+
     /// Handle a token exchange
     async fn token_exchange(&self, code: &str, pkce_verifier: &str) -> Result<BasicTokenResponse>;
+    async fn refresh_credentials(&mut self) -> Result<()>;
+
+    // Utility functions to call RESTful api endpoints
+    async fn call(
+        &mut self,
+        endpoint: &str,
+        query: &Vec<(String, String)>,
+    ) -> Result<reqwest::Response> {
+        // See if the token is expired
+        if self.credentials().is_expired() {
+            log::debug!("Refreshing expired token");
+            if let Err(err) = self.refresh_credentials().await {
+                return Err(anyhow!("Unable to refresh credentials: {}", err));
+            }
+        }
+
+        let client = self.http_client();
+        println!("client`: {:?}", client);
+
+        let mut req = client.get(endpoint);
+        if !query.is_empty() {
+            req = req.query(query);
+        }
+
+        match req.send().await {
+            Ok(resp) => Ok(resp),
+            Err(err) => Err(anyhow!(err.to_string())),
+        }
+    }
+
+    async fn call_json<T: DeserializeOwned>(
+        &mut self,
+        endpoint: &str,
+        query: &Vec<(String, String)>,
+    ) -> anyhow::Result<T> {
+        let resp = self.call(endpoint, query).await?;
+        match resp.error_for_status() {
+            Ok(resp) => match resp.json::<T>().await {
+                Ok(res) => Ok(res),
+                Err(err) => Err(anyhow!(err.to_string())),
+            },
+            Err(err) => Err(anyhow!(err.to_string())),
+        }
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -84,6 +136,7 @@ pub fn auth_http_client(token: &str) -> Result<Client> {
     headers.insert("Authorization", value);
 
     Ok(reqwest::Client::builder()
+        .user_agent(DEFAULT_USER_AGENT)
         .default_headers(headers)
         .build()?)
 }
@@ -107,7 +160,7 @@ pub fn oauth_client(params: &OAuthParams) -> BasicClient {
 
     let mut client = BasicClient::new(
         ClientId::new(params.client_id.clone()),
-        client_secret.map(|s| ClientSecret::new(s)),
+        client_secret.map(ClientSecret::new),
         auth_url,
         token_url.map(|url| TokenUrl::new(url).expect("Invalid token endpoint URL")),
     );

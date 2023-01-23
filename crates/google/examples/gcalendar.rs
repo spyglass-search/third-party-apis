@@ -4,7 +4,7 @@ use dotenv_codegen::dotenv;
 use libauth::helpers::load_credentials;
 use libgoog::{types::AuthScope, ClientType, GoogClient};
 
-const REDIRECT_URL: &str = "http://localhost:8080";
+const REDIRECT_URL: &str = "http://127.0.0.1:8080";
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

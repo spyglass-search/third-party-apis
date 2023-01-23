@@ -1,6 +1,5 @@
 use bytes::Bytes;
 use libauth::OAuthParams;
-use serde::de::DeserializeOwned;
 use std::str::FromStr;
 
 use anyhow::{anyhow, Result};
@@ -44,6 +43,14 @@ pub struct GoogClient {
 impl ApiClient for GoogClient {
     fn id(&self) -> String {
         self.endpoint.clone()
+    }
+
+    fn credentials(&self) -> Credentials {
+        self.credentials.clone()
+    }
+
+    fn http_client(&self) -> Client {
+        self.http.clone()
     }
 
     fn set_credentials(&mut self, credentials: &Credentials) -> Result<()> {
@@ -96,6 +103,23 @@ impl ApiClient for GoogClient {
             Err(err) => Err(anyhow!(err.to_string())),
         }
     }
+
+    async fn refresh_credentials(&mut self) -> Result<()> {
+        if let Some(refresh_token) = &self.credentials.refresh_token {
+            let new_token = self
+                .oauth
+                .exchange_refresh_token(refresh_token)
+                .request_async(async_http_client)
+                .await?;
+
+            self.credentials.refresh_token(&new_token);
+            self.http = auth_http_client(new_token.access_token().secret())?;
+            // Let any listeners know the credentials have been updated.
+            (self.on_refresh)(&self.credentials);
+        }
+
+        Ok(())
+    }
 }
 
 impl GoogClient {
@@ -127,57 +151,6 @@ impl GoogClient {
             credentials: creds,
             on_refresh: Box::new(|_| {}),
         })
-    }
-
-    pub async fn call(
-        &mut self,
-        endpoint: &str,
-        query: &Vec<(String, String)>,
-    ) -> Result<reqwest::Response> {
-        // See if the token is expired
-        if self.credentials.is_expired() {
-            log::debug!("Refreshing expired token");
-            if let Err(err) = self.refresh_credentials().await {
-                return Err(anyhow!("Unable to refresh credentials: {}", err));
-            }
-        }
-
-        match self.http.get(endpoint).query(query).send().await {
-            Ok(resp) => Ok(resp),
-            Err(err) => Err(anyhow!(err.to_string())),
-        }
-    }
-
-    pub async fn call_json<T: DeserializeOwned>(
-        &mut self,
-        endpoint: &str,
-        query: &Vec<(String, String)>,
-    ) -> Result<T> {
-        let resp = self.call(endpoint, query).await?;
-        match resp.error_for_status() {
-            Ok(resp) => match resp.json::<T>().await {
-                Ok(res) => Ok(res),
-                Err(err) => Err(anyhow!(err.to_string())),
-            },
-            Err(err) => Err(anyhow!(err.to_string())),
-        }
-    }
-
-    pub async fn refresh_credentials(&mut self) -> Result<()> {
-        if let Some(refresh_token) = &self.credentials.refresh_token {
-            let new_token = self
-                .oauth
-                .exchange_refresh_token(refresh_token)
-                .request_async(async_http_client)
-                .await?;
-
-            self.credentials.refresh_token(&new_token);
-            self.http = auth_http_client(new_token.access_token().secret())?;
-            // Let any listeners know the credentials have been updated.
-            (self.on_refresh)(&self.credentials);
-        }
-
-        Ok(())
     }
 
     pub async fn download_file(&mut self, file_id: &str) -> Result<Bytes> {

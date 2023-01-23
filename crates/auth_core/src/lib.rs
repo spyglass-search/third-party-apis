@@ -50,8 +50,6 @@ pub trait ApiClient {
         }
 
         let client = self.http_client();
-        println!("client`: {:?}", client);
-
         let mut req = client.get(endpoint);
         if !query.is_empty() {
             req = req.query(query);

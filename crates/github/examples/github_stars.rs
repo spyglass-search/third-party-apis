@@ -2,7 +2,8 @@ use dotenv::dotenv;
 use dotenv_codegen::dotenv;
 
 use libauth::helpers::load_credentials;
-use libgithub::{AuthScopes, GithubClient};
+use libgithub::types::AuthScopes;
+use libgithub::GithubClient;
 
 const REDIRECT_URL: &str = "http://127.0.0.1:8080";
 
@@ -18,14 +19,29 @@ async fn main() -> anyhow::Result<()> {
     let scopes = vec![AuthScopes::Repo.to_string(), AuthScopes::User.to_string()];
     load_credentials(&mut client, &scopes).await;
 
-    client.get_user().await?;
+    let user = client.get_user().await?;
+    println!("Authenticated w/ {}", user.login);
 
-    let repos = client.list_stars().await?;
-
-    println!("Listing some example repos:");
+    println!("\nListing starred repos:");
     println!("------------------------------");
-    for repo in repos.iter().take(5) {
-        println!("{:?}", repo);
+    let repos = client.list_starred(None).await?;
+    println!("\nnext_page: {:?}", repos.next_page);
+    for repo in repos.result.iter().take(5) {
+        println!("Name: {}", repo.full_name);
+        println!("URL: {}", repo.html_url);
+        println!("Desc: {}", repo.description.clone().unwrap_or_default());
+        println!("---")
+    }
+
+    println!("\nListing user's repos:");
+    println!("------------------------------");
+    let repos = client.list_repos(None).await?;
+    println!("\nnext_page: {:?}", repos.next_page);
+    for repo in repos.result.iter().take(5) {
+        println!("Name: {}", repo.full_name);
+        println!("URL: {}", repo.html_url);
+        println!("Desc: {}", repo.description.clone().unwrap_or_default());
+        println!("---")
     }
 
     Ok(())

@@ -1,46 +1,25 @@
 use anyhow::anyhow;
 use anyhow::Result;
 use async_trait::async_trait;
-use libauth::auth_http_client;
-use libauth::{oauth_client, ApiClient, AuthorizationRequest, Credentials, OAuthParams};
+use libauth::{
+    auth_http_client, oauth_client, ApiClient, AuthorizationRequest, Credentials, OAuthParams,
+    OnRefreshFn,
+};
 use oauth2::basic::{BasicClient, BasicTokenResponse};
+use oauth2::http::HeaderMap;
 use oauth2::reqwest::async_http_client;
 use oauth2::{
     AuthorizationCode, CsrfToken, PkceCodeChallenge, PkceCodeVerifier, Scope, TokenResponse,
 };
 use reqwest::Client;
-use strum_macros::{Display, EnumString};
 
-mod types;
+pub mod types;
+use types::ApiResponse;
 
 const AUTH_URL: &str = "https://github.com/login/oauth/authorize";
 const TOKEN_URL: &str = "https://github.com/login/oauth/access_token";
 
 const API_ENDPOINT: &str = "https://api.github.com";
-
-pub type OnRefreshFn = Box<dyn FnMut(&Credentials) + Send + Sync + 'static>;
-
-/// Github scopes taken from: https://docs.github.com/en/developers/apps/building-oauth-apps/scopes-for-oauth-apps
-#[derive(Debug, Display, EnumString)]
-pub enum AuthScopes {
-    /// Full access to repo
-    #[strum(serialize = "repo")]
-    Repo,
-    /// Grants read/write access to commit statuses in public/private repos
-    #[strum(serialize = "repo:status")]
-    RepoStatus,
-    /// Grants access to deployment statuses for public/private repos.
-    #[strum(serialize = "repo_deployment")]
-    RepoDeployment,
-    /// Limits access to public repos. Read/write access to code, commit statuses,
-    /// projects, collaborators, and deployment statuses. Also required for starring
-    /// public repos.
-    #[strum(serialize = "public_repo")]
-    PublicRepo,
-    /// Grants read/write access to profile info only.
-    #[strum(serialize = "user")]
-    User,
-}
 
 pub struct GithubClient {
     pub credentials: Credentials,
@@ -130,12 +109,6 @@ impl ApiClient for GithubClient {
     }
 }
 
-#[derive(Debug)]
-pub struct GithubRepo {
-    pub name: String,
-    pub num_stars: u32,
-}
-
 impl GithubClient {
     pub fn new(
         client_id: &str,
@@ -160,17 +133,48 @@ impl GithubClient {
         })
     }
 
-    pub async fn get_user(&mut self) -> Result<()> {
-        let resp = self.call("https://api.github.com/user", &Vec::new()).await?;
-        match resp.text().await {
-            Ok(res) => println!("{:?}", res),
-            Err(err) => println!("Unable to make request: {}", err),
+    fn has_next(&self, headers: &HeaderMap) -> bool {
+        if let Some(link) = headers.get("link") {
+            let value = link.to_str().unwrap_or_default();
+            return value.contains("rel=\"next\"");
         }
 
-        Ok(())
+        false
     }
 
-    pub async fn list_stars(&self) -> Result<Vec<GithubRepo>> {
-        Ok(Vec::new())
+    /// Handle pagination through Github API results
+    async fn paginate(&mut self, endpoint: &str, page: Option<u32>) -> Result<ApiResponse<Vec<types::Repo>>> {
+
+        let query = vec![("page".to_string(), page.unwrap_or(1).to_string())];
+
+        let resp = self.call(&endpoint, &query).await?;
+        let next_page = if self.has_next(resp.headers()) {
+            Some(page.unwrap_or(1) + 1)
+        } else {
+            None
+        };
+
+        match resp.json::<Vec<types::Repo>>().await {
+            Ok(result) => Ok(ApiResponse { next_page, result }),
+            Err(err) => Err(anyhow!(err.to_string())),
+        }
+    }
+
+    pub async fn get_user(&mut self) -> Result<types::User> {
+        let mut endpoint = API_ENDPOINT.to_string();
+        endpoint.push_str("/user");
+        self.call_json::<types::User>(&endpoint, &Vec::new()).await
+    }
+
+    pub async fn list_repos(&mut self, page: Option<u32>) -> Result<ApiResponse<Vec<types::Repo>>> {
+        let mut endpoint = API_ENDPOINT.to_string();
+        endpoint.push_str("/user/repos");
+        self.paginate(&endpoint, page).await
+    }
+
+    pub async fn list_starred(&mut self, page: Option<u32>) -> Result<ApiResponse<Vec<types::Repo>>> {
+        let mut endpoint = API_ENDPOINT.to_string();
+        endpoint.push_str("/user/starred");
+        self.paginate(&endpoint, page).await
     }
 }

@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
-async-trait = "0.1.62"
+async-trait = "0.1"
 auth_core = { path = "../auth_core" }
 bytes = "1.2"
 chrono = "0.4"

@@ -1,71 +1,37 @@
+use oauth2::CsrfToken;
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpListener;
 use std::path::Path;
-
-use dotenv::dotenv;
-use dotenv_codegen::dotenv;
-use oauth2::CsrfToken;
 use url::Url;
 
-use libgoog::{types::AuthScope, ClientType, Credentials, GoogClient};
+use super::{ApiClient, Credentials};
 
-const SAVED_CREDS: &str = "saved.json";
-const REDIRECT_URL: &str = "http://localhost:8080";
+const SAVED_CREDS_DIR: &str = "credentials";
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    let path = Path::new(SAVED_CREDS);
-
-    dotenv().ok();
-
-    let google_client_id = dotenv!("GOOGLE_CLIENT_ID");
-    let google_client_secret = dotenv!("GOOGLE_CLIENT_SECRET");
-
-    let mut client = GoogClient::new(
-        ClientType::Drive,
-        google_client_id,
-        google_client_secret,
-        REDIRECT_URL,
-        Default::default(),
-    )?;
-    client.set_on_refresh(move |new_creds| {
-        println!(
-            "Received new access code: {}",
-            new_creds.access_token.secret()
-        );
-        // save new credentials.
-        let _ = new_creds.save_to_file(path.to_path_buf());
-    });
-
-    load_credentials(&mut client).await;
-
-    let files = client.list_files(None, None).await?;
-
-    println!("------------------------------");
-    println!("next_page: {:?}", files.next_page_token);
-    println!("------------------------------");
-
-    println!("Listing some example files:");
-    println!("------------------------------");
-    for file in files.files.iter().take(5) {
-        println!("{:?}", file);
-        match client.get_file_metadata(&file.id).await {
-            Ok(content) => {
-                println!("details: {:?}", content);
-                // if let Ok(content) = client.download_file(&file.id).await {
-                //     println!("read {} bytes", content.len());
-                // }
-                println!("----------")
-            }
-            Err(err) => println!("Unable to get file data: {}", err),
-        }
+/// Helper function to load saved credentials from the filesystem.
+/// SHOULD ONLY BE USED FOR EXAMPLES AND TESTS
+pub async fn load_credentials(client: &mut impl ApiClient, scopes: &[String]) {
+    let dir = Path::new(SAVED_CREDS_DIR);
+    if !dir.exists() {
+        let _ = std::fs::create_dir_all(SAVED_CREDS_DIR);
     }
 
-    Ok(())
-}
+    let file_name = format!("{}.json", client.id());
+    let path = dir.join(file_name);
 
-pub async fn load_credentials(client: &mut GoogClient) {
-    let path = Path::new(SAVED_CREDS);
+    // Setup a refresh callback when a new token is needed.
+    // When called this will save the new credentials to disk
+    {
+        let path = path.clone();
+        client.set_on_refresh(move |new_creds| {
+            println!(
+                "Received new access code: {}",
+                new_creds.access_token.secret()
+            );
+            // save new credentials.
+            let _ = new_creds.save_to_file(path.to_path_buf());
+        });
+    }
 
     // Load from file system (if exists) or run through token authorization process.
     let credentials = if path.exists() {
@@ -74,7 +40,9 @@ pub async fn load_credentials(client: &mut GoogClient) {
 
         saved
     } else {
-        let (code, pkce_verifier) = get_token(client).await.expect("Unable to request token");
+        let (code, pkce_verifier) = get_token(client, scopes)
+            .await
+            .expect("Unable to request token");
         let token = client
             .token_exchange(&code, &pkce_verifier)
             .await
@@ -83,17 +51,15 @@ pub async fn load_credentials(client: &mut GoogClient) {
         let mut saved = Credentials::default();
         saved.refresh_token(&token);
         let _ = saved.save_to_file(path.to_path_buf());
-
         saved
     };
 
     let _ = client.set_credentials(&credentials);
 }
 
-pub async fn get_token(client: &GoogClient) -> Option<(String, String)> {
-    let scopes = vec![AuthScope::Drive, AuthScope::DriveMetadata];
-
-    let request = client.authorize(&scopes);
+/// Runs a ephemeral HTTP server that waits for OAuth to call the redirect_url
+pub async fn get_token(client: &impl ApiClient, scopes: &[String]) -> Option<(String, String)> {
+    let request = client.authorize(scopes);
     println!("Open this URL in your browser:\n{}\n", request.url);
 
     // A very naive implementation of the redirect server.
@@ -141,9 +107,10 @@ pub async fn get_token(client: &GoogClient) -> Option<(String, String)> {
         );
         stream.write_all(response.as_bytes()).unwrap();
 
-        println!("Google returned the following code:\n{}\n", code);
+        println!("{} returned the following code:\n{}\n", client.id(), code);
         println!(
-            "Google returned the following state:\n{} (expected `{}`)\n",
+            "{} returned the following state:\n{} (expected `{}`)\n",
+            client.id(),
             state.secret(),
             request.csrf_token.secret()
         );

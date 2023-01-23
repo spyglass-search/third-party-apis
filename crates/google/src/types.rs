@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use strum_macros::{AsRefStr, EnumString};
+use strum_macros::{AsRefStr, Display, EnumString};
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
@@ -131,7 +131,7 @@ pub struct Files {
 }
 
 #[allow(dead_code)]
-#[derive(AsRefStr, Debug)]
+#[derive(AsRefStr, Debug, Display)]
 /// Taken from https://developers.google.com/identity/protocols/oauth2/scopes
 pub enum AuthScope {
     #[strum(serialize = "https://www.googleapis.com/auth/calendar.readonly")]

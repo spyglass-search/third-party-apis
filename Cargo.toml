@@ -1,4 +1,6 @@
 [workspace]
 members = [
-    "google"
+    "crates/auth_core",
+    "crates/github",
+    "crates/google"
 ]

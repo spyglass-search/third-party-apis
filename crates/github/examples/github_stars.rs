@@ -1,4 +1,3 @@
-use dotenv::dotenv;
 use dotenv_codegen::dotenv;
 
 use libauth::helpers::load_credentials;
@@ -9,8 +8,6 @@ const REDIRECT_URL: &str = "http://127.0.0.1:8080";
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    dotenv().ok();
-
     let client_id = dotenv!("GITHUB_CLIENT_ID");
     let client_secret = dotenv!("GITHUB_CLIENT_SECRET");
 

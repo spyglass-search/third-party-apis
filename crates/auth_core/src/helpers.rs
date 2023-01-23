@@ -19,7 +19,8 @@ pub async fn load_credentials(client: &mut impl ApiClient, scopes: &[String]) {
     let file_name = format!("{}.json", client.id());
     let path = dir.join(file_name);
 
-    // Save any new creds we get to the appropriate file.
+    // Setup a refresh callback when a new token is needed.
+    // When called this will save the new credentials to disk
     {
         let path = path.clone();
         client.set_on_refresh(move |new_creds| {
@@ -56,6 +57,7 @@ pub async fn load_credentials(client: &mut impl ApiClient, scopes: &[String]) {
     let _ = client.set_credentials(&credentials);
 }
 
+/// Runs a ephemeral HTTP server that waits for OAuth to call the redirect_url
 pub async fn get_token(client: &impl ApiClient, scopes: &[String]) -> Option<(String, String)> {
     let request = client.authorize(scopes);
     println!("Open this URL in your browser:\n{}\n", request.url);
@@ -105,9 +107,10 @@ pub async fn get_token(client: &impl ApiClient, scopes: &[String]) -> Option<(St
         );
         stream.write_all(response.as_bytes()).unwrap();
 
-        println!("Google returned the following code:\n{}\n", code);
+        println!("{} returned the following code:\n{}\n", client.id(), code);
         println!(
-            "Google returned the following state:\n{} (expected `{}`)\n",
+            "{} returned the following state:\n{} (expected `{}`)\n",
+            client.id(),
             state.secret(),
             request.csrf_token.secret()
         );

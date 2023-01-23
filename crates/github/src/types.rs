@@ -51,6 +51,19 @@ pub struct Repo {
     pub pushed_at: DateTime<Utc>,
 }
 
+#[derive(Clone, Default, Deserialize, Serialize)]
+#[serde(default)]
+pub struct Issue {
+    pub title: String,
+    pub body: String,
+    pub user: User,
+    pub state: String,
+    pub html_url: String,
+    pub repository: Repo,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 pub struct ApiResponse<T> {
     pub next_page: Option<u32>,
     pub result: T,

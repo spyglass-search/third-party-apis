@@ -44,5 +44,16 @@ async fn main() -> anyhow::Result<()> {
         println!("---")
     }
 
+    println!("\nListing users issues:");
+    println!("------------------------------");
+    let issues = client.list_issues(None).await?;
+    println!("\nnext_page: {:?}", repos.next_page);
+    for issue in issues.result.iter().take(5) {
+        println!("Repo: {}", issue.repository.full_name);
+        println!("Title: {}", issue.title);
+        // println!("Body: {}", issue.body);
+        println!("---")
+    }
+
     Ok(())
 }

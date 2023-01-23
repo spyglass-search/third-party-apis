@@ -14,6 +14,7 @@ use oauth2::{
 use reqwest::Client;
 
 pub mod types;
+use serde::de::DeserializeOwned;
 use types::ApiResponse;
 
 const AUTH_URL: &str = "https://github.com/login/oauth/authorize";
@@ -143,18 +144,26 @@ impl GithubClient {
     }
 
     /// Handle pagination through Github API results
-    async fn paginate(&mut self, endpoint: &str, page: Option<u32>) -> Result<ApiResponse<Vec<types::Repo>>> {
+    async fn paginate<T>(
+        &mut self,
+        endpoint: &str,
+        page: Option<u32>,
+        query: &Vec<(String, String)>,
+    ) -> Result<ApiResponse<T>>
+    where
+        T: DeserializeOwned,
+    {
+        let mut query = query.to_owned();
+        query.push(("page".to_string(), page.unwrap_or(1).to_string()));
 
-        let query = vec![("page".to_string(), page.unwrap_or(1).to_string())];
-
-        let resp = self.call(&endpoint, &query).await?;
+        let resp = self.call(endpoint, &query).await?;
         let next_page = if self.has_next(resp.headers()) {
             Some(page.unwrap_or(1) + 1)
         } else {
             None
         };
 
-        match resp.json::<Vec<types::Repo>>().await {
+        match resp.json().await {
             Ok(result) => Ok(ApiResponse { next_page, result }),
             Err(err) => Err(anyhow!(err.to_string())),
         }
@@ -166,15 +175,29 @@ impl GithubClient {
         self.call_json::<types::User>(&endpoint, &Vec::new()).await
     }
 
+    pub async fn list_issues(
+        &mut self,
+        page: Option<u32>,
+    ) -> Result<ApiResponse<Vec<types::Issue>>> {
+        let mut endpoint = API_ENDPOINT.to_string();
+        endpoint.push_str("/issues");
+        let params = vec![("filter".to_string(), "all".to_string())];
+
+        self.paginate(&endpoint, page, &params).await
+    }
+
     pub async fn list_repos(&mut self, page: Option<u32>) -> Result<ApiResponse<Vec<types::Repo>>> {
         let mut endpoint = API_ENDPOINT.to_string();
         endpoint.push_str("/user/repos");
-        self.paginate(&endpoint, page).await
+        self.paginate(&endpoint, page, &Vec::new()).await
     }
 
-    pub async fn list_starred(&mut self, page: Option<u32>) -> Result<ApiResponse<Vec<types::Repo>>> {
+    pub async fn list_starred(
+        &mut self,
+        page: Option<u32>,
+    ) -> Result<ApiResponse<Vec<types::Repo>>> {
         let mut endpoint = API_ENDPOINT.to_string();
         endpoint.push_str("/user/starred");
-        self.paginate(&endpoint, page).await
+        self.paginate(&endpoint, page, &Vec::new()).await
     }
 }

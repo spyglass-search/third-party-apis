@@ -35,6 +35,11 @@ impl ApiClient for GithubClient {
         "api.github.com".to_string()
     }
 
+    async fn account_id(&mut self) -> Result<String> {
+        let user = self.get_user().await?;
+        Ok(user.login)
+    }
+
     fn credentials(&self) -> Credentials {
         self.credentials.clone()
     }

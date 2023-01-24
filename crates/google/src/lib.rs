@@ -12,7 +12,7 @@ use oauth2::basic::BasicTokenResponse;
 use oauth2::reqwest::async_http_client;
 use oauth2::{AuthorizationCode, CsrfToken, PkceCodeChallenge, PkceCodeVerifier, Scope};
 
-pub use libauth::{
+use libauth::{
     auth_http_client, oauth_client, ApiClient, AuthorizationRequest, Credentials, OnRefreshFn,
 };
 
@@ -43,6 +43,11 @@ pub struct GoogClient {
 impl ApiClient for GoogClient {
     fn id(&self) -> String {
         self.endpoint.clone()
+    }
+
+    async fn account_id(&mut self) -> Result<String> {
+        let user = self.get_user().await?;
+        Ok(user.email)
     }
 
     fn credentials(&self) -> Credentials {

@@ -19,7 +19,10 @@ pub type OnRefreshFn = Box<dyn FnMut(&Credentials) + Send + Sync + 'static>;
 
 #[async_trait]
 pub trait ApiClient {
+    /// Unique identifier for this API client.
     fn id(&self) -> String;
+    /// Authenticated account/user identifier.
+    async fn account_id(&mut self) -> Result<String>;
     /// Begin OAuth process w/ list of scopes
     fn authorize(&self, scopes: &[String]) -> AuthorizationRequest;
     /// Get the current credentials

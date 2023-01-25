@@ -44,6 +44,9 @@ pub struct Repo {
     pub visibility: String,
     pub owner: User,
 
+    /// API accessible url
+    pub url: String,
+    /// URL on Github website.
     pub html_url: String,
 
     pub created_at: DateTime<Utc>,
@@ -58,6 +61,9 @@ pub struct Issue {
     pub body: String,
     pub user: User,
     pub state: String,
+    /// API Accessible url
+    pub url: String,
+    /// URL on GitHub website
     pub html_url: String,
     pub repository: Repo,
     pub created_at: DateTime<Utc>,

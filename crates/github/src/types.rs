@@ -1,4 +1,6 @@
 use chrono::{DateTime, Utc};
+use markdown::{CompileOptions, Options};
+use scraper::Html;
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
 
@@ -70,7 +72,71 @@ pub struct Issue {
     pub updated_at: DateTime<Utc>,
 }
 
+impl Issue {
+    pub fn to_text(&self) -> String {
+        let html = self.to_html();
+        if html.is_empty() {
+            return html;
+        }
+
+        let html = Html::parse_fragment(&html);
+        let mut buffer = String::new();
+        let root = html.tree.nodes();
+        for node in root {
+            if let scraper::Node::Text(text) = node.value() {
+                buffer.push_str(text);
+            }
+        }
+
+        buffer
+    }
+
+    pub fn to_html(&self) -> String {
+        if let Some(body) = &self.body {
+            let html = markdown::to_html_with_options(
+                body.as_str(),
+                &Options {
+                    compile: CompileOptions {
+                        allow_dangerous_html: true,
+                        allow_dangerous_protocol: true,
+                        gfm_tagfilter: true,
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+            );
+
+            if let Ok(res) = html {
+                res
+            } else {
+                markdown::to_html(body)
+            }
+        } else {
+            String::new()
+        }
+    }
+}
+
 pub struct ApiResponse<T> {
     pub next_page: Option<u32>,
     pub result: T,
+}
+
+#[cfg(test)]
+mod test {
+    use super::Issue;
+
+    #[test]
+    pub fn test_to_text() {
+        let body = include_str!("../fixtures/issue_body.md");
+        let issue = Issue {
+            title: "title".to_string(),
+            body: Some(body.to_string()),
+            ..Default::default()
+        };
+
+        // println!("issue body: {}", body);
+        let expected = include_str!("../fixtures/issue_body.txt");
+        assert_eq!(issue.to_text(), expected);
+    }
 }

@@ -6,16 +6,18 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-auth_core = { path = "../auth_core" }
-async-trait = "0.1"
 anyhow = "1.0"
+async-trait = "0.1"
+auth_core = { path = "../auth_core" }
 bytes = "1.2"
 chrono = "0.4"
 dotenv = "0.15"
 dotenv_codegen = "0.15"
 log = "0.4"
+markdown = "1.0.0-alpha.5"
 oauth2 = "4.2.3"
 reqwest = { version = "0.11", features = ["json"] }
+scraper = "0.14.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 strum = "0.24"

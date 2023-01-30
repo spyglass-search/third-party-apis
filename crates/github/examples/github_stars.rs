@@ -48,18 +48,15 @@ async fn main() -> anyhow::Result<()> {
         page = issues.next_page;
         println!("next_page: {:?}", issues.next_page);
         for issue in issues.result.iter().take(5) {
-            println!("Repo: {}", issue.repository.full_name);
-            println!("Title: {}", issue.title);
+            println!("REPO:\t{}", issue.repository.full_name);
+            println!("TITLE:\t{}", issue.title);
 
-            let body = if let Some(body) = &issue.body {
-                let len = body.len() - 1;
-                body[..len.min(10)].to_string()
-            } else {
-                "EMPTY".to_string()
-            };
-
-            println!("Body: {}", body);
-            println!("---")
+            let issue_txt = issue.to_text();
+            if !issue_txt.is_empty() {
+                let max_len = issue_txt.len() - 1;
+                println!("TEXT:\t{}", issue_txt[..max_len.min(32)].to_string());
+                println!("---")
+            }
         }
 
         if page.is_none() {

@@ -217,7 +217,7 @@ impl GoogClient {
         next_page: Option<String>,
     ) -> Result<ListCalendarEventsResponse> {
         let mut endpoint = self.endpoint.to_string();
-        endpoint.push_str(&format!("/calendars/{}/events", calendar_id));
+        endpoint.push_str(&format!("/calendars/{calendar_id}/events"));
 
         let mut params = if let Some(next_page) = next_page {
             vec![("pageToken".to_string(), next_page)]
@@ -239,7 +239,7 @@ impl GoogClient {
         event_id: &str,
     ) -> Result<CalendarEvent> {
         let mut endpoint = self.endpoint.to_string();
-        endpoint.push_str(&format!("/calendars/{}/events/{}", calendar_id, event_id));
+        endpoint.push_str(&format!("/calendars/{calendar_id}/events/{event_id}"));
         self.call_json(&endpoint, &Vec::new()).await
     }
 

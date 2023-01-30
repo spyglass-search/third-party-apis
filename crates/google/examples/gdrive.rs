@@ -34,16 +34,16 @@ async fn main() -> anyhow::Result<()> {
     println!("Listing some example files:");
     println!("------------------------------");
     for file in files.files.iter().take(5) {
-        println!("{:?}", file);
+        println!("{file:?}");
         match client.get_file_metadata(&file.id).await {
             Ok(content) => {
-                println!("details: {:?}", content);
+                println!("details: {content:?}");
                 // if let Ok(content) = client.download_file(&file.id).await {
                 //     println!("read {} bytes", content.len());
                 // }
                 println!("----------")
             }
-            Err(err) => println!("Unable to get file data: {}", err),
+            Err(err) => println!("Unable to get file data: {err}"),
         }
     }
 

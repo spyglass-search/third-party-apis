@@ -133,7 +133,7 @@ impl Credentials {
 
 pub fn auth_http_client(token: &str) -> Result<Client> {
     let mut headers = header::HeaderMap::new();
-    let value = header::HeaderValue::from_str(&format!("Bearer {}", token))?;
+    let value = header::HeaderValue::from_str(&format!("Bearer {token}"))?;
     headers.insert("Authorization", value);
 
     Ok(reqwest::Client::builder()

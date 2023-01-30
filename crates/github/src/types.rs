@@ -58,7 +58,7 @@ pub struct Repo {
 #[serde(default)]
 pub struct Issue {
     pub title: String,
-    pub body: String,
+    pub body: Option<String>,
     pub user: User,
     pub state: String,
     /// API Accessible url

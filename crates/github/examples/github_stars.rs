@@ -43,13 +43,28 @@ async fn main() -> anyhow::Result<()> {
 
     println!("\nListing users issues:");
     println!("------------------------------");
-    let issues = client.list_issues(None).await?;
-    println!("\nnext_page: {:?}", repos.next_page);
-    for issue in issues.result.iter().take(5) {
-        println!("Repo: {}", issue.repository.full_name);
-        println!("Title: {}", issue.title);
-        // println!("Body: {}", issue.body);
-        println!("---")
+    let mut page = Some(1);
+    while let Ok(issues) = client.list_issues(page).await {
+        page = issues.next_page;
+        println!("next_page: {:?}", issues.next_page);
+        for issue in issues.result.iter().take(5) {
+            println!("Repo: {}", issue.repository.full_name);
+            println!("Title: {}", issue.title);
+
+            let body = if let Some(body) = &issue.body {
+                let len = body.len() - 1;
+                body[..len.min(10)].to_string()
+            } else {
+                "EMPTY".to_string()
+            };
+
+            println!("Body: {}", body);
+            println!("---")
+        }
+
+        if page.is_none() {
+            break;
+        }
     }
 
     Ok(())

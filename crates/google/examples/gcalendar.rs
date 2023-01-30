@@ -25,7 +25,7 @@ async fn main() -> anyhow::Result<()> {
     load_credentials(&mut client, &scopes).await;
 
     let user = client.get_user().await;
-    println!("AUTHORIZED USER: {:?}", user);
+    println!("AUTHORIZED USER: {user:?}");
 
     let cals = client.list_calendars(None).await?;
     println!("------------------------------");

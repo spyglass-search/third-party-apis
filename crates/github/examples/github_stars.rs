@@ -54,7 +54,7 @@ async fn main() -> anyhow::Result<()> {
             let issue_txt = issue.to_text();
             if !issue_txt.is_empty() {
                 let max_len = issue_txt.len() - 1;
-                println!("TEXT:\t{}", issue_txt[..max_len.min(32)].to_string());
+                println!("TEXT:\t{}", &issue_txt[..max_len.min(32)]);
                 println!("---")
             }
         }

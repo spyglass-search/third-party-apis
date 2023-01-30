@@ -79,7 +79,7 @@ pub async fn get_token(client: &impl ApiClient, scopes: &[String]) -> Option<(St
             let code_pair = url
                 .query_pairs()
                 .find(|pair| {
-                    let &(ref key, _) = pair;
+                    let (key, _) = pair;
                     key == "code"
                 })
                 .unwrap();
@@ -90,7 +90,7 @@ pub async fn get_token(client: &impl ApiClient, scopes: &[String]) -> Option<(St
             let state_pair = url
                 .query_pairs()
                 .find(|pair| {
-                    let &(ref key, _) = pair;
+                    let (key, _) = pair;
                     key == "state"
                 })
                 .unwrap();

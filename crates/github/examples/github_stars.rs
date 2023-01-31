@@ -64,5 +64,16 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
+    // Example retreiving a single repo
+    client
+        .get_repo("octocat/Hello-World")
+        .await
+        .expect("Unable to get repo");
+    // Example retrieving a single issue
+    client
+        .get_issue("octocat/Hello-World/issues/1")
+        .await
+        .expect("Unable to get issue");
+
     Ok(())
 }

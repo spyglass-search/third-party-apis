@@ -174,6 +174,26 @@ impl GithubClient {
         }
     }
 
+    pub async fn get_issue(&mut self, issue_or_url: &str) -> Result<types::Issue> {
+        let endpoint = if issue_or_url.starts_with("https://api.github.com/repos") {
+            issue_or_url.to_string()
+        } else {
+            format!("{API_ENDPOINT}/repos/{issue_or_url}")
+        };
+
+        self.call_json::<types::Issue>(&endpoint, &Vec::new()).await
+    }
+
+    pub async fn get_repo(&mut self, repo_or_url: &str) -> Result<types::Repo> {
+        let endpoint = if repo_or_url.starts_with("https://api.github.com/repos") {
+            repo_or_url.to_string()
+        } else {
+            format!("{API_ENDPOINT}/repos/{repo_or_url}")
+        };
+
+        self.call_json::<types::Repo>(&endpoint, &Vec::new()).await
+    }
+
     pub async fn get_user(&mut self) -> Result<types::User> {
         let mut endpoint = API_ENDPOINT.to_string();
         endpoint.push_str("/user");

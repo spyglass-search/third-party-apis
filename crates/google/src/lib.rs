@@ -32,6 +32,7 @@ const TOKEN_URL: &str = "https://www.googleapis.com/oauth2/v3/token";
 const REVOKE_URL: &str = "https://oauth2.googleapis.com/revoke";
 
 pub struct GoogClient {
+    client_type: ClientType,
     endpoint: String,
     http: Client,
     pub oauth: BasicClient,
@@ -42,7 +43,10 @@ pub struct GoogClient {
 #[async_trait]
 impl ApiClient for GoogClient {
     fn id(&self) -> String {
-        self.endpoint.clone()
+        match self.client_type {
+            ClientType::Calendar => "calendar.google.com".to_string(),
+            ClientType::Drive => "drive.google.com".to_string(),
+        }
     }
 
     async fn account_id(&mut self) -> Result<String> {
@@ -150,6 +154,7 @@ impl GoogClient {
         };
 
         Ok(GoogClient {
+            client_type,
             endpoint,
             http: auth_http_client(creds.access_token.secret())?,
             oauth: oauth_client(&params),

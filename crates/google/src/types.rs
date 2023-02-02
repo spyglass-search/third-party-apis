@@ -86,12 +86,12 @@ pub struct CalendarListResponse {
 #[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct FileUser {
-    display_name: String,
+    pub display_name: String,
     // The email address of the user. This may not be present in certain contexts if
     // the user has not made their email address visible to the user.
-    email_address: Option<String>,
+    pub email_address: Option<String>,
     #[serde(rename = "me")]
-    is_me: bool,
+    pub is_me: bool,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]

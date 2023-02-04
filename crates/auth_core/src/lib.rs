@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use oauth2::basic::{BasicClient, BasicTokenResponse};
@@ -8,14 +8,25 @@ use oauth2::TokenResponse;
 pub use oauth2::{AccessToken, RefreshToken};
 use oauth2::{AuthUrl, ClientId, ClientSecret, RedirectUrl, RevocationUrl, TokenUrl};
 use oauth2::{CsrfToken, PkceCodeChallenge};
-use reqwest::{header, Client};
+use reqwest::{header, Client, StatusCode};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use thiserror::Error;
 use url::Url;
 
 pub mod helpers;
 const DEFAULT_USER_AGENT: &str = "spyglass-search";
 
 pub type OnRefreshFn = Box<dyn FnMut(&Credentials) + Send + Sync + 'static>;
+
+#[derive(Error, Debug)]
+pub enum ApiError {
+    #[error("Authentication error")]
+    AuthError(String),
+    #[error(transparent)]
+    RequestError(#[from] reqwest::Error),
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
+}
 
 #[async_trait]
 pub trait ApiClient {
@@ -43,12 +54,14 @@ pub trait ApiClient {
         &mut self,
         endpoint: &str,
         query: &Vec<(String, String)>,
-    ) -> Result<reqwest::Response> {
+    ) -> Result<reqwest::Response, ApiError> {
         // See if the token is expired
         if self.credentials().is_expired() {
             log::debug!("Refreshing expired token");
             if let Err(err) = self.refresh_credentials().await {
-                return Err(anyhow!("Unable to refresh credentials: {}", err));
+                return Err(ApiError::AuthError(format!(
+                    "Unable to refresh credentials: {err}"
+                )));
             }
         }
 
@@ -60,7 +73,7 @@ pub trait ApiClient {
 
         match req.send().await {
             Ok(resp) => Ok(resp),
-            Err(err) => Err(anyhow!(err.to_string())),
+            Err(err) => Err(err.into()),
         }
     }
 
@@ -68,14 +81,22 @@ pub trait ApiClient {
         &mut self,
         endpoint: &str,
         query: &Vec<(String, String)>,
-    ) -> anyhow::Result<T> {
+    ) -> anyhow::Result<T, ApiError> {
         let resp = self.call(endpoint, query).await?;
+
         match resp.error_for_status() {
             Ok(resp) => match resp.json::<T>().await {
                 Ok(res) => Ok(res),
-                Err(err) => Err(anyhow!(err.to_string())),
+                Err(err) => Err(err.into()),
             },
-            Err(err) => Err(anyhow!(err.to_string())),
+            // Any status code from 400..599
+            Err(err) => {
+                if let Some(StatusCode::UNAUTHORIZED) = err.status() {
+                    Err(ApiError::AuthError("Unauthorized".to_owned()))
+                } else {
+                    Err(err.into())
+                }
+            }
         }
     }
 }

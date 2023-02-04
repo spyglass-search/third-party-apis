@@ -1,6 +1,7 @@
 use anyhow::anyhow;
 use anyhow::Result;
 use async_trait::async_trait;
+use libauth::ApiError;
 use libauth::{
     auth_http_client, oauth_client, ApiClient, AuthorizationRequest, Credentials, OAuthParams,
     OnRefreshFn,
@@ -174,7 +175,7 @@ impl GithubClient {
         }
     }
 
-    pub async fn get_issue(&mut self, issue_or_url: &str) -> Result<types::Issue> {
+    pub async fn get_issue(&mut self, issue_or_url: &str) -> Result<types::Issue, ApiError> {
         let endpoint = if issue_or_url.starts_with("https://api.github.com/repos") {
             issue_or_url.to_string()
         } else {
@@ -184,7 +185,7 @@ impl GithubClient {
         self.call_json::<types::Issue>(&endpoint, &Vec::new()).await
     }
 
-    pub async fn get_repo(&mut self, repo_or_url: &str) -> Result<types::Repo> {
+    pub async fn get_repo(&mut self, repo_or_url: &str) -> Result<types::Repo, ApiError> {
         let endpoint = if repo_or_url.starts_with("https://api.github.com/repos") {
             repo_or_url.to_string()
         } else {
@@ -194,7 +195,7 @@ impl GithubClient {
         self.call_json::<types::Repo>(&endpoint, &Vec::new()).await
     }
 
-    pub async fn get_user(&mut self) -> Result<types::User> {
+    pub async fn get_user(&mut self) -> Result<types::User, ApiError> {
         let mut endpoint = API_ENDPOINT.to_string();
         endpoint.push_str("/user");
         self.call_json::<types::User>(&endpoint, &Vec::new()).await

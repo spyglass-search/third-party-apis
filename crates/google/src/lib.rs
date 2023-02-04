@@ -13,7 +13,8 @@ use oauth2::reqwest::async_http_client;
 use oauth2::{AuthorizationCode, CsrfToken, PkceCodeChallenge, PkceCodeVerifier, Scope};
 
 use libauth::{
-    auth_http_client, oauth_client, ApiClient, AuthorizationRequest, Credentials, OnRefreshFn,
+    auth_http_client, oauth_client, ApiClient, ApiError, AuthorizationRequest, Credentials,
+    OnRefreshFn,
 };
 
 pub mod types;
@@ -201,7 +202,7 @@ impl GoogClient {
     pub async fn list_calendars(
         &mut self,
         next_page: Option<String>,
-    ) -> Result<CalendarListResponse> {
+    ) -> Result<CalendarListResponse, ApiError> {
         let mut endpoint = self.endpoint.to_string();
         endpoint.push_str("/users/me/calendarList");
 
@@ -220,7 +221,7 @@ impl GoogClient {
         &mut self,
         calendar_id: &str,
         next_page: Option<String>,
-    ) -> Result<ListCalendarEventsResponse> {
+    ) -> Result<ListCalendarEventsResponse, ApiError> {
         let mut endpoint = self.endpoint.to_string();
         endpoint.push_str(&format!("/calendars/{calendar_id}/events"));
 
@@ -242,7 +243,7 @@ impl GoogClient {
         &mut self,
         calendar_id: &str,
         event_id: &str,
-    ) -> Result<CalendarEvent> {
+    ) -> Result<CalendarEvent, ApiError> {
         let mut endpoint = self.endpoint.to_string();
         endpoint.push_str(&format!("/calendars/{calendar_id}/events/{event_id}"));
         self.call_json(&endpoint, &Vec::new()).await
@@ -252,7 +253,7 @@ impl GoogClient {
         &mut self,
         next_page: Option<String>,
         query: Option<String>,
-    ) -> Result<Files> {
+    ) -> Result<Files, ApiError> {
         let mut endpoint = self.endpoint.to_string();
         endpoint.push_str("/files");
 
@@ -270,7 +271,7 @@ impl GoogClient {
         self.call_json(&endpoint, &params).await
     }
 
-    pub async fn get_file_metadata(&mut self, id: &str) -> Result<File> {
+    pub async fn get_file_metadata(&mut self, id: &str) -> Result<File, ApiError> {
         let mut endpoint = self.endpoint.to_string();
         endpoint.push_str("/files/");
         endpoint.push_str(id);
@@ -299,7 +300,7 @@ impl GoogClient {
     }
 
     /// User associated with this credential
-    pub async fn get_user(&mut self) -> Result<GoogUser> {
+    pub async fn get_user(&mut self) -> Result<GoogUser, ApiError> {
         let endpoint = "https://www.googleapis.com/oauth2/v3/userinfo";
         self.call_json(endpoint, &Vec::new()).await
     }

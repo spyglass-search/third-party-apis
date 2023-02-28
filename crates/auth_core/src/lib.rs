@@ -83,7 +83,6 @@ pub trait ApiClient {
         query: &Vec<(String, String)>,
     ) -> anyhow::Result<T, ApiError> {
         let resp = self.call(endpoint, query).await?;
-
         match resp.error_for_status() {
             Ok(resp) => match resp.json::<T>().await {
                 Ok(res) => Ok(res),

@@ -19,6 +19,14 @@ async fn main() -> anyhow::Result<()> {
     load_credentials(&mut client, &scopes).await;
 
     let user = client.get_user().await?;
-    dbg!(user);
+    println!("Authenticated as user: {}", user.name);
+
+    println!("Saved Posts");
+    println!("=====================");
+    let saved_posts = client.get_saved_posts().await?;
+    for post in saved_posts {
+        println!("{}\nScore: {}\nhttps://www.reddit.com{}", post.title, post.score, post.permalink);
+        println!("----------------")
+    }
     Ok(())
 }

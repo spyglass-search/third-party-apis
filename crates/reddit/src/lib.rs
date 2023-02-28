@@ -17,13 +17,14 @@ pub mod types;
 const AUTH_URL: &str = "https://www.reddit.com/api/v1/authorize";
 const TOKEN_URL: &str = "https://www.reddit.com/api/v1/access_token";
 
-const API_ENDPOINT: &str = "https://oauth.reddit.com/api/v1/";
+const API_ENDPOINT: &str = "https://oauth.reddit.com";
 
 pub struct RedditClient {
     pub credentials: Credentials,
     http: Client,
     pub oauth: BasicClient,
     pub on_refresh: OnRefreshFn,
+    pub username: Option<String>,
 }
 
 #[async_trait]
@@ -33,7 +34,13 @@ impl ApiClient for RedditClient {
     }
 
     async fn account_id(&mut self) -> Result<String> {
-        todo!()
+        if let Some(username) = &self.username {
+            Ok(username.clone())
+        } else {
+            let name = self.get_user().await?.name;
+            self.username = Some(name.clone());
+            Ok(name)
+        }
     }
 
     fn credentials(&self) -> Credentials {
@@ -133,13 +140,27 @@ impl RedditClient {
             http: auth_http_client(creds.access_token.secret())?,
             oauth: oauth_client(&params),
             on_refresh: Box::new(|_| {}),
+            username: None,
         })
     }
 
     pub async fn get_user(&mut self) -> Result<types::User, ApiError> {
         let mut endpoint = API_ENDPOINT.to_string();
-        endpoint.push_str("me");
+        endpoint.push_str("/api/v1/me");
 
         self.call_json::<types::User>(&endpoint, &Vec::new()).await
+    }
+
+    pub async fn get_saved_posts(&mut self) -> Result<Vec<types::Post>, ApiError> {
+        let mut endpoint = API_ENDPOINT.to_string();
+        let username = self.account_id().await?;
+        endpoint.push_str(&format!("/user/{}/saved", username));
+
+        let listing = self.call_json::<types::PostListing>(&endpoint, &Vec::new()).await?;
+
+        let posts = listing.data.children.iter()
+            .map(|x| x.data.to_owned())
+            .collect::<Vec<_>>();
+        Ok(posts)
     }
 }

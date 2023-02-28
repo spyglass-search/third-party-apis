@@ -158,7 +158,7 @@ impl RedditClient {
         query: &Vec<(String, String)>,
     ) -> Result<ApiResponse<Vec<Post>>, ApiError> {
         let listing = self
-            .call_json::<types::DataWrapper<Listing<DataWrapper<Post>>>>(&endpoint, query)
+            .call_json::<types::DataWrapper<Listing<DataWrapper<Post>>>>(endpoint, query)
             .await?;
 
         let after = listing.data.after;

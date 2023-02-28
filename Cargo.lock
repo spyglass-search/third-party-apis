@@ -1227,6 +1227,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "reddit"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "auth_core",
+ "bytes",
+ "chrono",
+ "dotenv",
+ "dotenv_codegen",
+ "log",
+ "oauth2",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "strum",
+ "strum_macros",
+ "tokio",
+ "url",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"

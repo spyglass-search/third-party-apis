@@ -2,5 +2,6 @@
 members = [
     "crates/auth_core",
     "crates/github",
-    "crates/google"
+    "crates/google",
+    "crates/reddit"
 ]

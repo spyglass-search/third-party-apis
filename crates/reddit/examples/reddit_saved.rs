@@ -23,9 +23,13 @@ async fn main() -> anyhow::Result<()> {
 
     println!("Saved Posts");
     println!("=====================");
-    let saved_posts = client.get_saved_posts().await?;
-    for post in saved_posts {
-        println!("{}\nScore: {}\nhttps://www.reddit.com{}", post.title, post.score, post.permalink);
+    let saved_posts = client.list_saved(None).await?;
+    println!("Found {} posts", saved_posts.data.len());
+    for post in saved_posts.data.iter().take(5) {
+        println!(
+            "{}\n{:?}\nScore: {}\nhttps://www.reddit.com{}",
+            post.created_utc, post.title, post.score, post.permalink
+        );
         println!("----------------")
     }
     Ok(())

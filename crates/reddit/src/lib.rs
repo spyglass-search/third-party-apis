@@ -11,6 +11,7 @@ use oauth2::{
 };
 
 use reqwest::Client;
+use types::{ApiResponse, DataWrapper, Listing, Post};
 
 pub mod types;
 
@@ -151,16 +152,36 @@ impl RedditClient {
         self.call_json::<types::User>(&endpoint, &Vec::new()).await
     }
 
-    pub async fn get_saved_posts(&mut self) -> Result<Vec<types::Post>, ApiError> {
+    pub async fn list_saved(
+        &mut self,
+        after: Option<String>,
+    ) -> Result<ApiResponse<Vec<Post>>, ApiError> {
         let mut endpoint = API_ENDPOINT.to_string();
         let username = self.account_id().await?;
         endpoint.push_str(&format!("/user/{}/saved", username));
 
-        let listing = self.call_json::<types::PostListing>(&endpoint, &Vec::new()).await?;
+        let mut query = vec![
+            // for all time
+            ("t".into(), "all".into()),
+            // paginate 100 at a time
+            ("limit".into(), "100".into()),
+        ];
+        if let Some(after) = after {
+            query.push(("after".into(), after));
+        }
 
-        let posts = listing.data.children.iter()
+        let listing = self
+            .call_json::<types::DataWrapper<Listing<DataWrapper<Post>>>>(&endpoint, &query)
+            .await?;
+
+        let after = listing.data.after;
+        let posts = listing
+            .data
+            .children
+            .iter()
             .map(|x| x.data.to_owned())
             .collect::<Vec<_>>();
-        Ok(posts)
+
+        Ok(ApiResponse { after, data: posts })
     }
 }

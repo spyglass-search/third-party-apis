@@ -1,3 +1,5 @@
+use anyhow::anyhow;
+use oauth2::basic::BasicTokenResponse;
 use oauth2::CsrfToken;
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpListener;
@@ -40,13 +42,9 @@ pub async fn load_credentials(client: &mut impl ApiClient, scopes: &[String]) {
 
         saved
     } else {
-        let (code, pkce_verifier) = get_token(client, scopes)
+        let token = get_token(client, scopes)
             .await
             .expect("Unable to request token");
-        let token = client
-            .token_exchange(&code, &pkce_verifier)
-            .await
-            .expect("Unable to exchange code for token");
 
         let mut saved = Credentials::default();
         saved.refresh_token(&token);
@@ -58,7 +56,10 @@ pub async fn load_credentials(client: &mut impl ApiClient, scopes: &[String]) {
 }
 
 /// Runs a ephemeral HTTP server that waits for OAuth to call the redirect_url
-pub async fn get_token(client: &impl ApiClient, scopes: &[String]) -> Option<(String, String)> {
+pub async fn get_token(
+    client: &impl ApiClient,
+    scopes: &[String],
+) -> anyhow::Result<BasicTokenResponse> {
     let request = client.authorize(scopes);
     println!("Open this URL in your browser:\n{}\n", request.url);
 
@@ -82,7 +83,7 @@ pub async fn get_token(client: &impl ApiClient, scopes: &[String]) -> Option<(St
                     let (key, _) = pair;
                     key == "code"
                 })
-                .unwrap();
+                .expect("`code` was not found in query");
 
             let (_, value) = code_pair;
             code = value.into_owned();
@@ -93,7 +94,7 @@ pub async fn get_token(client: &impl ApiClient, scopes: &[String]) -> Option<(St
                     let (key, _) = pair;
                     key == "state"
                 })
-                .unwrap();
+                .expect("`state` was not found in query");
 
             let (_, value) = state_pair;
             state = CsrfToken::new(value.into_owned());
@@ -115,8 +116,8 @@ pub async fn get_token(client: &impl ApiClient, scopes: &[String]) -> Option<(St
             request.csrf_token.secret()
         );
 
-        Some((code, request.pkce_verifier))
+        client.token_exchange(&code, &request.pkce_verifier).await
     } else {
-        None
+        Err(anyhow!("Invalid request"))
     }
 }

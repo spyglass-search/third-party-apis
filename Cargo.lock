@@ -36,15 +36,11 @@ dependencies = [
  "async-trait",
  "bytes",
  "chrono",
- "dotenv",
- "dotenv_codegen",
  "log",
  "oauth2",
  "reqwest",
  "serde",
  "serde_json",
- "strum",
- "strum_macros",
  "thiserror",
  "tokio",
  "url",
@@ -109,9 +105,9 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "chrono"
-version = "0.4.22"
+version = "0.4.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfd4d1b31faaa3a89d7934dbded3111da0d2ef28e3ebccdb4f0179f5929d1ef1"
+checksum = "16b0a3d9ed01224b22057780a37bb8c5dbfe1be8ba48678e7bf57ec4b385411f"
 dependencies = [
  "iana-time-zone",
  "js-sys",
@@ -483,7 +479,6 @@ dependencies = [
  "anyhow",
  "async-trait",
  "auth_core",
- "bytes",
  "chrono",
  "dotenv",
  "dotenv_codegen",
@@ -497,7 +492,6 @@ dependencies = [
  "strum",
  "strum_macros",
  "tokio",
- "url",
 ]
 
 [[package]]
@@ -519,7 +513,6 @@ dependencies = [
  "strum",
  "strum_macros",
  "tokio",
- "url",
 ]
 
 [[package]]
@@ -1224,6 +1217,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "16abd0c1b639e9eb4d7c50c0b8100b0d0f849be2349829c740fe8e6eb4816429"
 dependencies = [
  "rand_core 0.5.1",
+]
+
+[[package]]
+name = "reddit"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "auth_core",
+ "chrono",
+ "dotenv",
+ "dotenv_codegen",
+ "log",
+ "oauth2",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "strum",
+ "strum_macros",
+ "tokio",
 ]
 
 [[package]]

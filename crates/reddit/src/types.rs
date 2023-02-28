@@ -18,6 +18,9 @@ pub enum AuthScopes {
     /// Grant read access to list of subreddits the user moderates, contributes to, subscribes to.
     #[strum(serialize = "mysubreddits")]
     MySubreddits,
+    /// Grant read access to post informatoin.
+    #[strum(serialize = "read")]
+    Read,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]

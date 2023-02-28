@@ -152,24 +152,11 @@ impl RedditClient {
         self.call_json::<types::User>(&endpoint, &Vec::new()).await
     }
 
-    pub async fn list_saved(
+    async fn paginate(
         &mut self,
-        after: Option<String>,
+        endpoint: &str,
+        query: &Vec<(String, String)>
     ) -> Result<ApiResponse<Vec<Post>>, ApiError> {
-        let mut endpoint = API_ENDPOINT.to_string();
-        let username = self.account_id().await?;
-        endpoint.push_str(&format!("/user/{}/saved", username));
-
-        let mut query = vec![
-            // for all time
-            ("t".into(), "all".into()),
-            // paginate 100 at a time
-            ("limit".into(), "100".into()),
-        ];
-        if let Some(after) = after {
-            query.push(("after".into(), after));
-        }
-
         let listing = self
             .call_json::<types::DataWrapper<Listing<DataWrapper<Post>>>>(&endpoint, &query)
             .await?;
@@ -184,4 +171,50 @@ impl RedditClient {
 
         Ok(ApiResponse { after, data: posts })
     }
+
+    pub async fn list_saved(
+        &mut self,
+        after: Option<String>,
+        limit: usize,
+    ) -> Result<ApiResponse<Vec<Post>>, ApiError> {
+        let mut endpoint = API_ENDPOINT.to_string();
+        let username = self.account_id().await?;
+        endpoint.push_str(&format!("/user/{}/saved", username));
+
+        let mut query = vec![
+            // for all time
+            ("t".into(), "all".into()),
+            // Make sure limit is at least 1 & at most 100
+            ("limit".into(), limit.max(1).min(100).to_string()),
+        ];
+        if let Some(after) = after {
+            query.push(("after".into(), after));
+        }
+
+        self.paginate(&endpoint, &query).await
+    }
+
+    pub async fn list_upvoted(
+        &mut self,
+        after: Option<String>,
+        limit: usize,
+    ) -> Result<ApiResponse<Vec<Post>>, ApiError> {
+        let mut endpoint = API_ENDPOINT.to_string();
+        let username = self.account_id().await?;
+        endpoint.push_str(&format!("/user/{}/upvoted", username));
+
+        let mut query = vec![
+            // for all time
+            ("t".into(), "all".into()),
+            // Make sure limit is at least 1 & at most 100
+            ("limit".into(), limit.max(1).min(100).to_string()),
+        ];
+
+        if let Some(after) = after {
+            query.push(("after".into(), after));
+        }
+
+        self.paginate(&endpoint, &query).await
+    }
+
 }

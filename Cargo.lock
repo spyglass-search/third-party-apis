@@ -36,15 +36,11 @@ dependencies = [
  "async-trait",
  "bytes",
  "chrono",
- "dotenv",
- "dotenv_codegen",
  "log",
  "oauth2",
  "reqwest",
  "serde",
  "serde_json",
- "strum",
- "strum_macros",
  "thiserror",
  "tokio",
  "url",
@@ -483,7 +479,6 @@ dependencies = [
  "anyhow",
  "async-trait",
  "auth_core",
- "bytes",
  "chrono",
  "dotenv",
  "dotenv_codegen",
@@ -497,7 +492,6 @@ dependencies = [
  "strum",
  "strum_macros",
  "tokio",
- "url",
 ]
 
 [[package]]
@@ -519,7 +513,6 @@ dependencies = [
  "strum",
  "strum_macros",
  "tokio",
- "url",
 ]
 
 [[package]]
@@ -1233,7 +1226,6 @@ dependencies = [
  "anyhow",
  "async-trait",
  "auth_core",
- "bytes",
  "chrono",
  "dotenv",
  "dotenv_codegen",
@@ -1245,7 +1237,6 @@ dependencies = [
  "strum",
  "strum_macros",
  "tokio",
- "url",
 ]
 
 [[package]]

@@ -172,6 +172,20 @@ impl RedditClient {
         Ok(ApiResponse { after, data: posts })
     }
 
+    pub async fn get_post(&mut self, id: &str) -> Result<Option<Post>, ApiError> {
+        let mut endpoint = API_ENDPOINT.to_string();
+        endpoint.push_str("/api/info");
+
+        let query = vec![("id".into(), id.into())];
+
+        let resp = self.paginate(&endpoint, &query).await?;
+        if let Some(post) = resp.data.get(0) {
+            Ok(Some(post.to_owned()))
+        } else {
+            Ok(None)
+        }
+    }
+
     pub async fn list_saved(
         &mut self,
         after: Option<String>,

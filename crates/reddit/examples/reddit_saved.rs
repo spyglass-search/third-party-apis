@@ -25,6 +25,7 @@ async fn main() -> anyhow::Result<()> {
         AuthScopes::Identity.to_string(),
         AuthScopes::History.to_string(),
         AuthScopes::MySubreddits.to_string(),
+        AuthScopes::Read.to_string(),
     ];
     load_credentials(&mut client, &scopes).await;
 
@@ -43,6 +44,11 @@ async fn main() -> anyhow::Result<()> {
     println!("=====================");
     let upvoted = client.list_upvoted(None, 5).await?;
     print_posts(&upvoted.data);
+
+    println!("\n\nGrabbing Single Post");
+    println!("=====================");
+    let post = client.get_post("t3_yc0bee").await?.expect("Post should exist");
+    print_posts(&[post]);
 
     Ok(())
 }

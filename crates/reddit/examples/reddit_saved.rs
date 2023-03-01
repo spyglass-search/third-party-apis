@@ -47,7 +47,10 @@ async fn main() -> anyhow::Result<()> {
 
     println!("\n\nGrabbing Single Post");
     println!("=====================");
-    let post = client.get_post("t3_yc0bee").await?.expect("Post should exist");
+    let post = client
+        .get_post("t3_yc0bee")
+        .await?
+        .expect("Post should exist");
     print_posts(&[post]);
 
     Ok(())

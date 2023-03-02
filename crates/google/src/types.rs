@@ -292,7 +292,7 @@ mod test {
                 time_zone: "America/Los_Angeles".into(),
             },
             recurrence: vec![
-                "RRULE:FREQ=WEEKLY;WKST=SU;UNTIL=20230308T000000Z;INTERVAL=3;BYDAY=TU".into(),
+                "RRULE:FREQ=WEEKLY;WKST=SU;UNTIL=20230307T180000Z;INTERVAL=3;BYDAY=TU".into(),
             ],
             ..Default::default()
         };

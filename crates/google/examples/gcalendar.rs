@@ -49,28 +49,31 @@ async fn main() -> anyhow::Result<()> {
     let primary_events = client
         .list_calendar_events("primary", Some(last_month), None)
         .await?;
-    for event in primary_events.items.iter().take(5) {
+    for event in primary_events.items.iter().take(10) {
+        // Skip recurring dates that don't have a next recurrence within our time
+        // period.
         let date = if event.is_recurring() {
-            event
-                .next_recurrence()
-                .map(|x| x.to_rfc3339())
-                .unwrap_or_default()
+            event.next_recurrence().map(|x| x.to_rfc3339())
         } else {
-            event
-                .start
-                .date_time
-                .map_or(event.start.date.clone(), |d| d.to_rfc3339())
+            Some(
+                event
+                    .start
+                    .date_time
+                    .map_or(event.start.date.clone(), |d| d.to_rfc3339()),
+            )
         };
 
-        println!(
-            "EVENT - {}\nDate: {} - {:?}\nTitle: {}\n# of Attendees: {}\nRecurring: {}\n",
-            event.id,
-            date,
-            event.end.date_time,
-            event.summary,
-            event.attendees.len(),
-            event.is_recurring()
-        );
+        if let Some(date) = date {
+            println!(
+                "EVENT - {}\nDate: {} - {:?}\nTitle: {}\n# of Attendees: {}\nRecurring: {}\n",
+                event.id,
+                date,
+                event.end.date_time,
+                event.summary,
+                event.attendees.len(),
+                event.is_recurring()
+            );
+        }
     }
     println!("------------------------------");
 

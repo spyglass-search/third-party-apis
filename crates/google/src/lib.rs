@@ -1,4 +1,5 @@
 use bytes::Bytes;
+use chrono::{DateTime, Utc};
 use libauth::OAuthParams;
 use std::str::FromStr;
 
@@ -220,6 +221,8 @@ impl GoogClient {
     pub async fn list_calendar_events(
         &mut self,
         calendar_id: &str,
+        after: Option<DateTime<Utc>>,
+        before: Option<DateTime<Utc>>,
         next_page: Option<String>,
     ) -> Result<ListCalendarEventsResponse, ApiError> {
         let mut endpoint = self.endpoint.to_string();
@@ -231,8 +234,14 @@ impl GoogClient {
             Vec::new()
         };
 
-        params.push(("orderBy".to_string(), "startTime".to_string()));
-        params.push(("singleEvents".to_string(), "true".to_string()));
+        params.push(("orderBy".to_string(), "updated".to_string()));
+        if let Some(after) = after {
+            params.push(("timeMin".into(), after.to_rfc3339()));
+        }
+
+        if let Some(before) = before {
+            params.push(("timeMax".into(), before.to_rfc3339()));
+        }
 
         self.call_json(&endpoint, &params).await
     }

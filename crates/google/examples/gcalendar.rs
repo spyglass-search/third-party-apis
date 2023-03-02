@@ -32,24 +32,54 @@ async fn main() -> anyhow::Result<()> {
     println!("next_page: {:?}", cals.next_page_token);
 
     println!("\n------------------------------");
-    println!("PRIMARY CALENDAR");
-    let primary_events = client.list_calendar_events("primary", None).await?;
-    for event in primary_events.items.iter().take(5) {
+    println!("CALENDARS");
+    println!("\n------------------------------");
+    let calendars = client.list_calendars(None).await?;
+    for cal in calendars.items.iter() {
         println!(
-            "EVENT: {} {} ({} attendees)",
+            "CALENDAR: {} ({}) | {} | {}",
+            cal.id, cal.primary, cal.summary, cal.access_role
+        )
+    }
+
+    let last_month = chrono::Utc::now() - chrono::Duration::days(30);
+
+    println!("\n------------------------------");
+    println!("PRIMARY CALENDAR");
+    let primary_events = client
+        .list_calendar_events("primary", Some(last_month), None)
+        .await?;
+    for event in primary_events.items.iter().take(5) {
+        let date = if event.is_recurring() {
+            event
+                .next_recurrence()
+                .map(|x| x.to_rfc3339())
+                .unwrap_or_default()
+        } else {
             event
                 .start
                 .date_time
-                .map_or(event.start.date.clone(), |d| d.to_rfc3339()),
+                .map_or(event.start.date.clone(), |d| d.to_rfc3339())
+        };
+
+        println!(
+            "EVENT - {}\nDate: {} - {:?}\nTitle: {}\n# of Attendees: {}\nRecurring: {}\n",
+            event.id,
+            date,
+            event.end.date_time,
             event.summary,
-            event.attendees.len()
+            event.attendees.len(),
+            event.is_recurring()
         );
     }
     println!("------------------------------");
 
     for cal in cals.items.iter().take(5) {
-        println!("CALENDAR: {} ({})", cal.summary, cal.id);
-        if let Ok(events) = client.list_calendar_events(&cal.id, None).await {
+        println!("\nCALENDAR: {} ({})", cal.summary, cal.id);
+        if let Ok(events) = client
+            .list_calendar_events(&cal.id, Some(last_month), None)
+            .await
+        {
             for event in events.items.iter().take(5) {
                 if let Ok(data) = client.get_calendar_event(&cal.id, &event.id).await {
                     println!(

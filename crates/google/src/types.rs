@@ -61,7 +61,7 @@ impl CalendarEvent {
         !self.recurrence.is_empty()
     }
 
-    pub fn next_recurrence(&self) -> Option<DateTime<Tz>> {
+    pub fn next_recurrence(&self) -> Option<DateTime<Utc>> {
         self.list_recurrences(1, None, None)
             .map(|x| x.get(0).map(|x| x.to_owned()))
             .unwrap_or_default()
@@ -75,7 +75,7 @@ impl CalendarEvent {
         num_recurrences: u16,
         after: Option<DateTime<Utc>>,
         before: Option<DateTime<Utc>>,
-    ) -> anyhow::Result<Vec<DateTime<Tz>>> {
+    ) -> anyhow::Result<Vec<DateTime<Utc>>> {
         let start = if let Some(date) = self.start.date_time {
             date
         } else if let Ok(date) = NaiveDate::parse_from_str(&self.start.date, "%Y-%m-%d") {
@@ -106,7 +106,7 @@ impl CalendarEvent {
         let (result, _) = rrules.all(num_recurrences);
         let result = result
             .iter()
-            .map(|x| x.with_timezone(&Tz::UTC))
+            .map(|x| x.with_timezone(&Utc))
             .collect::<Vec<_>>();
 
         Ok(result)

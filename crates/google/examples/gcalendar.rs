@@ -1,5 +1,4 @@
 use dotenv_codegen::dotenv;
-
 use libauth::helpers::load_credentials;
 use libgoog::{types::AuthScope, ClientType, GoogClient};
 
@@ -43,11 +42,12 @@ async fn main() -> anyhow::Result<()> {
     }
 
     let last_month = chrono::Utc::now() - chrono::Duration::days(30);
+    let future_month = chrono::Utc::now() + chrono::Duration::days(30);
 
     println!("\n------------------------------");
     println!("PRIMARY CALENDAR");
     let primary_events = client
-        .list_calendar_events("primary", Some(last_month), None)
+        .list_calendar_events("primary", Some(last_month), Some(future_month), None)
         .await?;
     for event in primary_events.items.iter().take(10) {
         // Skip recurring dates that don't have a next recurrence within our time
@@ -80,7 +80,7 @@ async fn main() -> anyhow::Result<()> {
     for cal in cals.items.iter().take(5) {
         println!("\nCALENDAR: {} ({})", cal.summary, cal.id);
         if let Ok(events) = client
-            .list_calendar_events(&cal.id, Some(last_month), None)
+            .list_calendar_events(&cal.id, Some(last_month), Some(future_month), None)
             .await
         {
             for event in events.items.iter().take(5) {

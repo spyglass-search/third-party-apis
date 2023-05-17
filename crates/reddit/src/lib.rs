@@ -5,7 +5,6 @@ use libauth::{
     OAuthParams, OnRefreshFn,
 };
 use oauth2::basic::{BasicClient, BasicTokenResponse};
-use oauth2::reqwest::async_http_client;
 use oauth2::{
     AuthorizationCode, CsrfToken, PkceCodeChallenge, PkceCodeVerifier, Scope, TokenResponse,
 };
@@ -94,7 +93,7 @@ impl ApiClient for RedditClient {
             .oauth
             .exchange_code(code)
             .set_pkce_verifier(PkceCodeVerifier::new(pkce_verifier.to_owned()))
-            .request_async(async_http_client)
+            .request_async(Self::http_client)
             .await
         {
             Ok(val) => Ok(val),
@@ -107,7 +106,7 @@ impl ApiClient for RedditClient {
             let new_token = self
                 .oauth
                 .exchange_refresh_token(refresh_token)
-                .request_async(async_http_client)
+                .request_async(Self::http_client)
                 .await?;
 
             self.credentials.refresh_token(&new_token);
@@ -150,6 +149,18 @@ impl RedditClient {
         endpoint.push_str("/api/v1/me");
 
         self.call_json::<types::User>(&endpoint, &Vec::new()).await
+    }
+
+    pub async fn http_client(
+        mut request: oauth2::HttpRequest,
+    ) -> Result<oauth2::HttpResponse, oauth2::reqwest::Error<reqwest::Error>> {
+        request.headers.insert(
+            "User-Agent",
+            "desktop:com.athlabs.spyglass:v0.0.1 (by /u/andyndino)"
+                .parse()
+                .unwrap(),
+        );
+        oauth2::reqwest::async_http_client(request).await
     }
 
     async fn paginate(

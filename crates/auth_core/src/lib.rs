@@ -20,7 +20,7 @@ pub type OnRefreshFn = Box<dyn FnMut(&Credentials) + Send + Sync + 'static>;
 
 #[derive(Error, Debug)]
 pub enum ApiError {
-    #[error("Authentication error")]
+    #[error("Authentication error: {0}")]
     AuthError(String),
     #[error(transparent)]
     RequestError(#[from] reqwest::Error),

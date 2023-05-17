@@ -86,7 +86,7 @@ pub struct Post {
 
 /// Types are documented here: https://www.reddit.com/dev/api/oauth#fullnames
 /// under "type prefixes"
-#[derive(Clone, Debug, Display, EnumString)]
+#[derive(Clone, Default, Debug, Display, EnumString)]
 pub enum DataType {
     #[strum(serialize = "t1")]
     Comment,
@@ -100,14 +100,9 @@ pub enum DataType {
     Subreddit,
     #[strum(serialize = "t6")]
     Award,
+    #[default]
     #[strum(serialize = "")]
     Unknown,
-}
-
-impl Default for DataType {
-    fn default() -> Self {
-        DataType::Unknown
-    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]

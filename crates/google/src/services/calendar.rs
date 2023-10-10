@@ -1,10 +1,10 @@
+use crate::types;
+use crate::GoogClient;
 use chrono::{DateTime, Utc};
 use libauth::{ApiClient, ApiError};
-use crate::GoogClient;
-use crate::types;
 
 pub struct Calendar {
-    client: GoogClient
+    client: GoogClient,
 }
 
 /// Retrieve list of calendars for the authenticated user.

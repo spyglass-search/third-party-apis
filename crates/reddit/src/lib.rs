@@ -166,7 +166,7 @@ impl RedditClient {
     async fn paginate(
         &mut self,
         endpoint: &str,
-        query: &Vec<(String, String)>,
+        query: &[(String, String)],
     ) -> Result<ApiResponse<Vec<Post>>, ApiError> {
         let listing = self
             .call_json::<types::DataWrapper<Listing<DataWrapper<Post>>>>(endpoint, query)

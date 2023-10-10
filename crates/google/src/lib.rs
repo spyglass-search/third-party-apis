@@ -20,13 +20,12 @@ use libauth::{
 pub mod services;
 pub mod types;
 
-use types::{
-    File, FileType, Files, GoogUser,
-};
+use types::{File, FileType, Files, GoogUser};
 
 pub enum ClientType {
     Calendar,
     Drive,
+    Sheets,
 }
 
 const AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -48,6 +47,7 @@ impl ApiClient for GoogClient {
         match self.client_type {
             ClientType::Calendar => "calendar.google.com".to_string(),
             ClientType::Drive => "drive.google.com".to_string(),
+            ClientType::Sheets => "sheets.googleapis.com".to_string(),
         }
     }
 
@@ -144,6 +144,7 @@ impl GoogClient {
         let endpoint = match client_type {
             ClientType::Calendar => "https://www.googleapis.com/calendar/v3".to_string(),
             ClientType::Drive => "https://www.googleapis.com/drive/v3".to_string(),
+            ClientType::Sheets => "https://sheets.googleapis.com/v4".to_string(),
         };
 
         let params = OAuthParams {

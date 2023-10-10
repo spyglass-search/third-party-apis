@@ -55,6 +55,14 @@ pub struct UpdateRangeOptions {
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct AppendValuesResponse {
+    spreadsheet_id: String,
+    table_range: String,
+    updates: UpdateValuesResponse,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateValuesResponse {
     spreadsheet_id: String,
     updated_range: String,

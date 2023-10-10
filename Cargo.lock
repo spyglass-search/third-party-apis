@@ -3,6 +3,15 @@
 version = 3
 
 [[package]]
+name = "a1_notation"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dbb562f9a23c10a0b3197c887a0a44447bd3a707132f03a8ee0f541b565eb844"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "aho-corasick"
 version = "0.7.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -529,6 +538,7 @@ dependencies = [
 name = "google"
 version = "0.1.0"
 dependencies = [
+ "a1_notation",
  "anyhow",
  "async-trait",
  "auth_core",

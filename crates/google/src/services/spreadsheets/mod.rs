@@ -1,5 +1,6 @@
 use libauth::{ApiClient, ApiError};
 use reqwest::StatusCode;
+use a1_notation::{A1, RangeOrCell, Address};
 
 pub mod types;
 
@@ -35,6 +36,55 @@ impl Sheets {
             "/spreadsheets/{spreadsheet_id}/values/{sheet_id}!{cell_range}"
         ));
         self.client.call_json(&endpoint, &[]).await
+    }
+
+    pub async fn append(
+        &mut self,
+        spreadsheet_id: &str,
+        sheet_id: &str,
+        values: &[String],
+        update_options: &types::UpdateRangeOptions,
+    ) -> Result<types::AppendValuesResponse, ApiError> {
+        // Determine the cell range based on the number of values
+        let notation = A1 {
+            sheet_name: Some(sheet_id.to_string()),
+            reference: RangeOrCell::Range {
+                from: Address::new(0, 0),
+                to: Address::new(0, values.len())
+            }
+        };
+
+        let notation = notation.to_string();
+        let mut endpoint = self.client.endpoint.clone();
+        endpoint.push_str(&format!(
+            "/spreadsheets/{spreadsheet_id}/values/{notation}:append"
+        ));
+
+        let updates: Vec<Vec<String>> = vec![values.to_vec()];
+        let body = ValueRange::with_values(updates);
+
+        let client = self.client.get_check_client().await?;
+        let resp = client
+            .post(&endpoint)
+            .query(update_options)
+            .json(&body)
+            .send()
+            .await?;
+
+        match resp.error_for_status() {
+            Ok(resp) => match resp.json::<types::AppendValuesResponse>().await {
+                Ok(res) => Ok(res),
+                Err(err) => Err(err.into()),
+            },
+            // Any status code from 400..599
+            Err(err) => {
+                if let Some(StatusCode::UNAUTHORIZED) = err.status() {
+                    Err(ApiError::AuthError("Unauthorized".to_owned()))
+                } else {
+                    Err(err.into())
+                }
+            }
+        }
     }
 
     pub async fn update_range(

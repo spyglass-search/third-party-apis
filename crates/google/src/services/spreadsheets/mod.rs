@@ -1,6 +1,6 @@
+use a1_notation::{Address, RangeOrCell, A1};
 use libauth::{ApiClient, ApiError};
 use reqwest::StatusCode;
-use a1_notation::{A1, RangeOrCell, Address};
 
 pub mod types;
 
@@ -50,8 +50,8 @@ impl Sheets {
             sheet_name: Some(sheet_id.to_string()),
             reference: RangeOrCell::Range {
                 from: Address::new(0, 0),
-                to: Address::new(0, values.len())
-            }
+                to: Address::new(0, values.len()),
+            },
         };
 
         let notation = notation.to_string();

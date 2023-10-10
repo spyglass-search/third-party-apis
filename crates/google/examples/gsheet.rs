@@ -1,5 +1,5 @@
-use std::env;
 use dotenv_codegen::dotenv;
+use std::env;
 
 use libauth::helpers::load_credentials;
 use libgoog::{services::spreadsheets::Sheets, types::AuthScope, ClientType, GoogClient};

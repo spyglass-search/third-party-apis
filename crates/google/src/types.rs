@@ -215,6 +215,8 @@ pub enum AuthScope {
     GmailMetadata,
     #[strum(serialize = "https://www.googleapis.com/auth/photoslibrary.readonly")]
     Photos,
+    #[strum(serialize = "https://www.googleapis.com/auth/spreadsheets")]
+    Sheets,
     #[strum(serialize = "https://www.googleapis.com/auth/youtube.readonly")]
     YouTube,
 }

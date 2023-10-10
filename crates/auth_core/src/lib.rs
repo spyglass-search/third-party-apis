@@ -49,12 +49,9 @@ pub trait ApiClient {
     async fn token_exchange(&self, code: &str, pkce_verifier: &str) -> Result<BasicTokenResponse>;
     async fn refresh_credentials(&mut self) -> Result<()>;
 
-    // Utility functions to call RESTful api endpoints
-    async fn call(
-        &mut self,
-        endpoint: &str,
-        query: &Vec<(String, String)>,
-    ) -> Result<reqwest::Response, ApiError> {
+    /// Utility function to get a valid HTTP client after checking a credential
+    /// for expiration and refreshing as necessary.
+    async fn get_check_client(&mut self) -> Result<Client, ApiError> {
         // See if the token is expired
         if self.credentials().is_expired() {
             log::debug!("Refreshing expired token");
@@ -65,7 +62,16 @@ pub trait ApiClient {
             }
         }
 
-        let client = self.http_client();
+        Ok(self.http_client())
+    }
+
+    /// Utility functions to call RESTful api endpoints
+    async fn call(
+        &mut self,
+        endpoint: &str,
+        query: &Vec<(String, String)>,
+    ) -> Result<reqwest::Response, ApiError> {
+        let client = self.get_check_client().await?;
         let mut req = client.get(endpoint);
         if !query.is_empty() {
             req = req.query(query);
@@ -80,9 +86,9 @@ pub trait ApiClient {
     async fn call_json<T: DeserializeOwned>(
         &mut self,
         endpoint: &str,
-        query: &Vec<(String, String)>,
+        query: &[(String, String)],
     ) -> anyhow::Result<T, ApiError> {
-        let resp = self.call(endpoint, query).await?;
+        let resp = self.call(endpoint, &query.to_vec()).await?;
         match resp.error_for_status() {
             Ok(resp) => match resp.json::<T>().await {
                 Ok(res) => Ok(res),

@@ -1,5 +1,6 @@
 use dotenv_codegen::dotenv;
 use libauth::helpers::load_credentials;
+use libgoog::services::calendar::Calendar;
 use libgoog::{types::AuthScope, ClientType, GoogClient};
 
 const REDIRECT_URL: &str = "http://127.0.0.1:8080";
@@ -24,16 +25,17 @@ async fn main() -> anyhow::Result<()> {
     load_credentials(&mut client, &scopes).await;
 
     let user = client.get_user().await;
+    let mut calendar = Calendar::new(client);
     println!("AUTHORIZED USER: {user:?}");
 
-    let cals = client.list_calendars(None).await?;
+    let cals = calendar.list_calendars(None).await?;
     println!("------------------------------");
     println!("next_page: {:?}", cals.next_page_token);
 
     println!("\n------------------------------");
     println!("CALENDARS");
     println!("\n------------------------------");
-    let calendars = client.list_calendars(None).await?;
+    let calendars = calendar.list_calendars(None).await?;
     for cal in calendars.items.iter() {
         println!(
             "CALENDAR: {} ({}) | {} | {}",
@@ -46,7 +48,7 @@ async fn main() -> anyhow::Result<()> {
 
     println!("\n------------------------------");
     println!("PRIMARY CALENDAR");
-    let primary_events = client
+    let primary_events = calendar
         .list_calendar_events("primary", Some(last_month), Some(future_month), None)
         .await?;
     for event in primary_events.items.iter().take(10) {
@@ -79,12 +81,12 @@ async fn main() -> anyhow::Result<()> {
 
     for cal in cals.items.iter().take(5) {
         println!("\nCALENDAR: {} ({})", cal.summary, cal.id);
-        if let Ok(events) = client
+        if let Ok(events) = calendar
             .list_calendar_events(&cal.id, Some(last_month), Some(future_month), None)
             .await
         {
             for event in events.items.iter().take(5) {
-                if let Ok(data) = client.get_calendar_event(&cal.id, &event.id).await {
+                if let Ok(data) = calendar.get_calendar_event(&cal.id, &event.id).await {
                     println!(
                         "EVENT: {} {} ({} attendees)",
                         data.start

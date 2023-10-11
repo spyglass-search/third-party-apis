@@ -28,6 +28,12 @@ pub enum ApiError {
     Other(#[from] anyhow::Error),
 }
 
+#[derive(Default)]
+pub struct AuthorizeOptions {
+    pub pkce: bool,
+    pub extra_params: Vec<(String, String)>,
+}
+
 #[async_trait]
 pub trait ApiClient {
     /// Unique identifier for this API client.
@@ -35,7 +41,7 @@ pub trait ApiClient {
     /// Authenticated account/user identifier.
     async fn account_id(&mut self) -> Result<String>;
     /// Begin OAuth process w/ list of scopes
-    fn authorize(&self, scopes: &[String]) -> AuthorizationRequest;
+    fn authorize(&self, scopes: &[String], options: &AuthorizeOptions) -> AuthorizationRequest;
     /// Get the current credentials
     fn credentials(&self) -> Credentials;
     // Get an HTTP client primed with the current credentials
@@ -46,7 +52,11 @@ pub trait ApiClient {
     fn set_on_refresh(&mut self, callback: impl FnMut(&Credentials) + Send + Sync + 'static);
 
     /// Handle a token exchange
-    async fn token_exchange(&self, code: &str, pkce_verifier: &str) -> Result<BasicTokenResponse>;
+    async fn token_exchange(
+        &self,
+        code: &str,
+        pkce_verifier: Option<String>,
+    ) -> Result<BasicTokenResponse>;
     async fn refresh_credentials(&mut self) -> Result<()>;
 
     /// Utility function to get a valid HTTP client after checking a credential
@@ -129,8 +139,8 @@ impl Default for Credentials {
 pub struct AuthorizationRequest {
     pub url: Url,
     pub csrf_token: CsrfToken,
-    pub pkce_challenge: PkceCodeChallenge,
-    pub pkce_verifier: String,
+    pub pkce_challenge: Option<PkceCodeChallenge>,
+    pub pkce_verifier: Option<String>,
 }
 
 impl Credentials {

@@ -1,5 +1,5 @@
 use bytes::Bytes;
-use libauth::OAuthParams;
+use libauth::{AuthorizeOptions, OAuthParams};
 use std::str::FromStr;
 
 use anyhow::{anyhow, Result};
@@ -74,42 +74,57 @@ impl ApiClient for GoogClient {
         self.on_refresh = Box::new(callback);
     }
 
-    fn authorize(&self, scopes: &[String]) -> AuthorizationRequest {
-        // Google supports Proof Key for Code Exchange (PKCE - https://oauth.net/2/pkce/).
-        // Create a PKCE code verifier and SHA-256 encode it as a code challenge.
-        let (pkce_code_challenge, pkce_code_verifier) = PkceCodeChallenge::new_random_sha256();
-
+    fn authorize(&self, scopes: &[String], options: &AuthorizeOptions) -> AuthorizationRequest {
         let scopes = scopes
             .iter()
             .map(|s| Scope::new(s.to_string()))
             .collect::<Vec<Scope>>();
 
-        // Generate the authorization URL to which we'll redirect the user.
-        let (authorize_url, csrf_state) = self
+        let mut req = self
             .oauth
             .authorize_url(CsrfToken::new_random)
-            .add_scopes(scopes)
-            .set_pkce_challenge(pkce_code_challenge.clone())
-            .url();
+            .add_scopes(scopes);
+
+        for (key, value) in &options.extra_params {
+            req = req.add_extra_param(key, value)
+        }
+
+        let (pkce_challenge, pkce_verifier) = if options.pkce {
+            // Google supports Proof Key for Code Exchange (PKCE - https://oauth.net/2/pkce/).
+            // Create a PKCE code verifier and SHA-256 encode it as a code challenge.
+            let (pkce_code_challenge, pkce_code_verifier) = PkceCodeChallenge::new_random_sha256();
+            req = req.set_pkce_challenge(pkce_code_challenge.clone());
+            (
+                Some(pkce_code_challenge),
+                Some(pkce_code_verifier.secret().to_string()),
+            )
+        } else {
+            (None, None)
+        };
+
+        // Generate the authorization URL to which we'll redirect the user.
+        let (authorize_url, csrf_state) = req.url();
 
         AuthorizationRequest {
             url: authorize_url,
             csrf_token: csrf_state,
-            pkce_challenge: pkce_code_challenge,
-            pkce_verifier: pkce_code_verifier.secret().to_string(),
+            pkce_challenge,
+            pkce_verifier,
         }
     }
 
-    async fn token_exchange(&self, code: &str, pkce_verifier: &str) -> Result<BasicTokenResponse> {
+    async fn token_exchange(
+        &self,
+        code: &str,
+        pkce_verifier: Option<String>,
+    ) -> Result<BasicTokenResponse> {
         let code = AuthorizationCode::new(code.to_owned());
+        let mut exchange = self.oauth.exchange_code(code);
+        if let Some(pkce) = pkce_verifier {
+            exchange = exchange.set_pkce_verifier(PkceCodeVerifier::new(pkce));
+        }
 
-        match self
-            .oauth
-            .exchange_code(code)
-            .set_pkce_verifier(PkceCodeVerifier::new(pkce_verifier.to_owned()))
-            .request_async(async_http_client)
-            .await
-        {
+        match exchange.request_async(async_http_client).await {
             Ok(val) => Ok(val),
             Err(err) => Err(anyhow!(err.to_string())),
         }

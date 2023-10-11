@@ -6,6 +6,8 @@ use std::net::TcpListener;
 use std::path::Path;
 use url::Url;
 
+use crate::AuthorizeOptions;
+
 use super::{ApiClient, Credentials};
 
 const SAVED_CREDS_DIR: &str = "credentials";
@@ -60,7 +62,11 @@ pub async fn get_token(
     client: &impl ApiClient,
     scopes: &[String],
 ) -> anyhow::Result<BasicTokenResponse> {
-    let request = client.authorize(scopes);
+    let options = AuthorizeOptions {
+        pkce: true,
+        ..Default::default()
+    };
+    let request = client.authorize(scopes, &options);
     println!("Open this URL in your browser:\n{}\n", request.url);
 
     // A very naive implementation of the redirect server.
@@ -116,7 +122,7 @@ pub async fn get_token(
             request.csrf_token.secret()
         );
 
-        client.token_exchange(&code, &request.pkce_verifier).await
+        client.token_exchange(&code, request.pkce_verifier).await
     } else {
         Err(anyhow!("Invalid request"))
     }

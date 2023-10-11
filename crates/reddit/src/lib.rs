@@ -1,8 +1,8 @@
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use libauth::{
-    auth_http_client, oauth_client, ApiClient, ApiError, AuthorizationRequest, Credentials,
-    OAuthParams, OnRefreshFn,
+    auth_http_client, oauth_client, ApiClient, ApiError, AuthorizationRequest, AuthorizeOptions,
+    Credentials, OAuthParams, OnRefreshFn,
 };
 use oauth2::basic::{BasicClient, BasicTokenResponse};
 use oauth2::{
@@ -61,7 +61,7 @@ impl ApiClient for RedditClient {
         self.on_refresh = Box::new(callback);
     }
 
-    fn authorize(&self, scopes: &[String]) -> AuthorizationRequest {
+    fn authorize(&self, scopes: &[String], _: &AuthorizeOptions) -> AuthorizationRequest {
         let (pkce_code_challenge, pkce_code_verifier) = PkceCodeChallenge::new_random_sha256();
         let scopes = scopes
             .iter()
@@ -81,21 +81,24 @@ impl ApiClient for RedditClient {
         AuthorizationRequest {
             url: authorize_url,
             csrf_token: csrf_state,
-            pkce_challenge: pkce_code_challenge,
-            pkce_verifier: pkce_code_verifier.secret().to_string(),
+            pkce_challenge: Some(pkce_code_challenge),
+            pkce_verifier: Some(pkce_code_verifier.secret().to_string()),
         }
     }
 
-    async fn token_exchange(&self, code: &str, pkce_verifier: &str) -> Result<BasicTokenResponse> {
+    async fn token_exchange(
+        &self,
+        code: &str,
+        pkce_verifier: Option<String>,
+    ) -> Result<BasicTokenResponse> {
         let code = AuthorizationCode::new(code.to_owned());
 
-        match self
-            .oauth
-            .exchange_code(code)
-            .set_pkce_verifier(PkceCodeVerifier::new(pkce_verifier.to_owned()))
-            .request_async(Self::http_client)
-            .await
-        {
+        let mut exchange = self.oauth.exchange_code(code);
+        if let Some(pkce_verifier) = pkce_verifier {
+            exchange = exchange.set_pkce_verifier(PkceCodeVerifier::new(pkce_verifier));
+        }
+
+        match exchange.request_async(Self::http_client).await {
             Ok(val) => Ok(val),
             Err(err) => Err(anyhow!(err.to_string())),
         }

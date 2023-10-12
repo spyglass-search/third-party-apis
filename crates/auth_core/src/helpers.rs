@@ -27,13 +27,17 @@ pub async fn load_credentials(client: &mut impl ApiClient, scopes: &[String]) {
     // When called this will save the new credentials to disk
     {
         let path = path.clone();
-        client.set_on_refresh(move |new_creds| {
-            println!(
-                "Received new access code: {}",
-                new_creds.access_token.secret()
-            );
-            // save new credentials.
-            let _ = new_creds.save_to_file(path.to_path_buf());
+        let mut watcher = client.watch_on_refresh();
+        tokio::spawn(async move {
+            loop {
+                // Wait for changes
+                if watcher.changed().await.is_err() {
+                    break;
+                }
+                let new_creds = watcher.borrow_and_update();
+                // save new credentials.
+                let _ = new_creds.save_to_file(path.to_path_buf());
+            }
         });
     }
 

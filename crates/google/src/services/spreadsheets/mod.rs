@@ -20,7 +20,8 @@ impl Sheets {
     pub async fn get(&mut self, spreadsheet_id: &str) -> Result<types::Spreadsheet, ApiError> {
         let mut endpoint = self.client.endpoint.clone();
         endpoint.push_str(&format!("/spreadsheets/{spreadsheet_id}"));
-        self.client.call_json(&endpoint, &[]).await
+        serde_json::from_value::<types::Spreadsheet>(self.client.call_json(&endpoint, &[]).await?)
+            .map_err(ApiError::SerdeError)
     }
 
     /// Grab cell values using A1 notation (see: https://developers.google.com/sheets/api/guides/concepts#cell)
@@ -35,7 +36,8 @@ impl Sheets {
         endpoint.push_str(&format!(
             "/spreadsheets/{spreadsheet_id}/values/{sheet_id}!{cell_range}"
         ));
-        self.client.call_json(&endpoint, &[]).await
+        serde_json::from_value::<types::ValueRange>(self.client.call_json(&endpoint, &[]).await?)
+            .map_err(ApiError::SerdeError)
     }
 
     pub async fn append(

@@ -9,14 +9,15 @@ pub use oauth2::{AccessToken, RefreshToken};
 use oauth2::{AuthUrl, ClientId, ClientSecret, RedirectUrl, RevocationUrl, TokenUrl};
 use oauth2::{CsrfToken, PkceCodeChallenge};
 use reqwest::{header, Client, StatusCode};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use tokio::sync::watch;
 use url::Url;
 
 pub mod helpers;
 const DEFAULT_USER_AGENT: &str = "spyglass-search";
 
-pub type OnRefreshFn = Box<dyn FnMut(&Credentials) + Send + Sync + 'static>;
+pub type ApiClientBox = Box<dyn ApiClient>;
 
 #[derive(Error, Debug)]
 pub enum ApiError {
@@ -26,6 +27,8 @@ pub enum ApiError {
     RequestError(#[from] reqwest::Error),
     #[error(transparent)]
     Other(#[from] anyhow::Error),
+    #[error("Serialization error: {0}")]
+    SerdeError(#[from] serde_json::Error),
 }
 
 #[derive(Default)]
@@ -49,7 +52,7 @@ pub trait ApiClient {
 
     /// Update credentials used by this ApiClient
     fn set_credentials(&mut self, credentials: &Credentials) -> Result<()>;
-    fn set_on_refresh(&mut self, callback: impl FnMut(&Credentials) + Send + Sync + 'static);
+    fn watch_on_refresh(&mut self) -> watch::Receiver<Credentials>;
 
     /// Handle a token exchange
     async fn token_exchange(
@@ -93,14 +96,14 @@ pub trait ApiClient {
         }
     }
 
-    async fn call_json<T: DeserializeOwned>(
+    async fn call_json(
         &mut self,
         endpoint: &str,
         query: &[(String, String)],
-    ) -> anyhow::Result<T, ApiError> {
+    ) -> anyhow::Result<serde_json::Value, ApiError> {
         let resp = self.call(endpoint, &query.to_vec()).await?;
         match resp.error_for_status() {
-            Ok(resp) => match resp.json::<T>().await {
+            Ok(resp) => match resp.json().await {
                 Ok(res) => Ok(res),
                 Err(err) => Err(err.into()),
             },
@@ -116,7 +119,7 @@ pub trait ApiClient {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Credentials {
     pub requested_at: DateTime<Utc>,
     pub access_token: AccessToken,

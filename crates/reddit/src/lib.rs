@@ -2,7 +2,7 @@ use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use libauth::{
     auth_http_client, oauth_client, ApiClient, ApiError, AuthorizationRequest, AuthorizeOptions,
-    Credentials, OAuthParams, OnRefreshFn,
+    Credentials, OAuthParams,
 };
 use oauth2::basic::{BasicClient, BasicTokenResponse};
 use oauth2::{
@@ -10,6 +10,7 @@ use oauth2::{
 };
 
 use reqwest::Client;
+use tokio::sync::watch;
 use types::{ApiResponse, DataWrapper, Listing, Post};
 
 pub mod types;
@@ -23,7 +24,8 @@ pub struct RedditClient {
     pub credentials: Credentials,
     http: Client,
     pub oauth: BasicClient,
-    pub on_refresh: OnRefreshFn,
+    pub on_refresh_tx: watch::Sender<Credentials>,
+    pub on_refresh_rx: watch::Receiver<Credentials>,
     pub username: Option<String>,
 }
 
@@ -57,8 +59,8 @@ impl ApiClient for RedditClient {
         Ok(())
     }
 
-    fn set_on_refresh(&mut self, callback: impl FnMut(&Credentials) + Send + Sync + 'static) {
-        self.on_refresh = Box::new(callback);
+    fn watch_on_refresh(&mut self) -> watch::Receiver<Credentials> {
+        self.on_refresh_rx.clone()
     }
 
     fn authorize(&self, scopes: &[String], _: &AuthorizeOptions) -> AuthorizationRequest {
@@ -115,7 +117,7 @@ impl ApiClient for RedditClient {
             self.credentials.refresh_token(&new_token);
             self.http = auth_http_client(new_token.access_token().secret())?;
             // Let any listeners know the credentials have been updated.
-            (self.on_refresh)(&self.credentials);
+            self.on_refresh_tx.send(self.credentials.clone())?;
         }
 
         Ok(())
@@ -138,11 +140,14 @@ impl RedditClient {
             ..Default::default()
         };
 
+        let (tx, rx) = watch::channel(creds.clone());
+
         Ok(RedditClient {
             credentials: creds.clone(),
             http: auth_http_client(creds.access_token.secret())?,
             oauth: oauth_client(&params),
-            on_refresh: Box::new(|_| {}),
+            on_refresh_tx: tx,
+            on_refresh_rx: rx,
             username: None,
         })
     }
@@ -151,7 +156,8 @@ impl RedditClient {
         let mut endpoint = API_ENDPOINT.to_string();
         endpoint.push_str("/api/v1/me");
 
-        self.call_json::<types::User>(&endpoint, &Vec::new()).await
+        let resp = self.call_json(&endpoint, &Vec::new()).await?;
+        serde_json::from_value::<types::User>(resp).map_err(ApiError::SerdeError)
     }
 
     pub async fn http_client(
@@ -171,9 +177,9 @@ impl RedditClient {
         endpoint: &str,
         query: &[(String, String)],
     ) -> Result<ApiResponse<Vec<Post>>, ApiError> {
-        let listing = self
-            .call_json::<types::DataWrapper<Listing<DataWrapper<Post>>>>(endpoint, query)
-            .await?;
+        let listing = serde_json::from_value::<types::DataWrapper<Listing<DataWrapper<Post>>>>(
+            self.call_json(endpoint, query).await?,
+        )?;
 
         let after = listing.data.after;
         let posts = listing

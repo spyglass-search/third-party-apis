@@ -5,7 +5,6 @@ use libauth::ApiError;
 use libauth::AuthorizeOptions;
 use libauth::{
     auth_http_client, oauth_client, ApiClient, AuthorizationRequest, Credentials, OAuthParams,
-    OnRefreshFn,
 };
 use oauth2::basic::{BasicClient, BasicTokenResponse};
 use oauth2::http::HeaderMap;
@@ -17,6 +16,7 @@ use reqwest::Client;
 
 pub mod types;
 use serde::de::DeserializeOwned;
+use tokio::sync::watch;
 use types::ApiResponse;
 
 const AUTH_URL: &str = "https://github.com/login/oauth/authorize";
@@ -28,7 +28,8 @@ pub struct GithubClient {
     pub credentials: Credentials,
     http: Client,
     pub oauth: BasicClient,
-    pub on_refresh: OnRefreshFn,
+    pub on_refresh_tx: watch::Sender<Credentials>,
+    pub on_refresh_rx: watch::Receiver<Credentials>,
 }
 
 #[async_trait]
@@ -56,8 +57,8 @@ impl ApiClient for GithubClient {
         Ok(())
     }
 
-    fn set_on_refresh(&mut self, callback: impl FnMut(&Credentials) + Send + Sync + 'static) {
-        self.on_refresh = Box::new(callback);
+    fn watch_on_refresh(&mut self) -> watch::Receiver<Credentials> {
+        self.on_refresh_rx.clone()
     }
 
     fn authorize(&self, scopes: &[String], _: &AuthorizeOptions) -> AuthorizationRequest {
@@ -113,7 +114,7 @@ impl ApiClient for GithubClient {
             self.credentials.refresh_token(&new_token);
             self.http = auth_http_client(new_token.access_token().secret())?;
             // Let any listeners know the credentials have been updated.
-            (self.on_refresh)(&self.credentials);
+            self.on_refresh_tx.send(self.credentials.clone())?;
         }
 
         Ok(())
@@ -136,11 +137,13 @@ impl GithubClient {
             ..Default::default()
         };
 
+        let (tx, rx) = watch::channel(creds.clone());
         Ok(GithubClient {
             credentials: creds.clone(),
             http: auth_http_client(creds.access_token.secret())?,
             oauth: oauth_client(&params),
-            on_refresh: Box::new(|_| {}),
+            on_refresh_tx: tx,
+            on_refresh_rx: rx,
         })
     }
 
@@ -186,7 +189,8 @@ impl GithubClient {
             format!("{API_ENDPOINT}/repos/{issue_or_url}")
         };
 
-        self.call_json::<types::Issue>(&endpoint, &Vec::new()).await
+        serde_json::from_value::<types::Issue>(self.call_json(&endpoint, &Vec::new()).await?)
+            .map_err(ApiError::SerdeError)
     }
 
     pub async fn get_repo(&mut self, repo_or_url: &str) -> Result<types::Repo, ApiError> {
@@ -196,13 +200,15 @@ impl GithubClient {
             format!("{API_ENDPOINT}/repos/{repo_or_url}")
         };
 
-        self.call_json::<types::Repo>(&endpoint, &Vec::new()).await
+        serde_json::from_value::<types::Repo>(self.call_json(&endpoint, &Vec::new()).await?)
+            .map_err(ApiError::SerdeError)
     }
 
     pub async fn get_user(&mut self) -> Result<types::User, ApiError> {
         let mut endpoint = API_ENDPOINT.to_string();
         endpoint.push_str("/user");
-        self.call_json::<types::User>(&endpoint, &Vec::new()).await
+        serde_json::from_value::<types::User>(self.call_json(&endpoint, &Vec::new()).await?)
+            .map_err(ApiError::SerdeError)
     }
 
     pub async fn list_issues(

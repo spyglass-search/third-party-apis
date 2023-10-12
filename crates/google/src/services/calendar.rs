@@ -2,6 +2,7 @@ use crate::types;
 use crate::GoogClient;
 use chrono::{DateTime, Utc};
 use libauth::{ApiClient, ApiError};
+use serde_json::from_value;
 
 pub struct Calendar {
     client: GoogClient,
@@ -26,7 +27,7 @@ impl Calendar {
             Vec::new()
         };
 
-        self.client.call_json(&endpoint, &params).await
+        from_value(self.client.call_json(&endpoint, &params).await?).map_err(ApiError::SerdeError)
     }
 
     /// Retrieve all events for a calendar.
@@ -56,7 +57,7 @@ impl Calendar {
             params.push(("timeMax".into(), before.to_rfc3339()));
         }
 
-        self.client.call_json(&endpoint, &params).await
+        from_value(self.client.call_json(&endpoint, &params).await?).map_err(ApiError::SerdeError)
     }
 
     /// Retrieve a single event from a calendar.
@@ -68,6 +69,7 @@ impl Calendar {
     ) -> Result<types::CalendarEvent, ApiError> {
         let mut endpoint = self.client.endpoint.to_string();
         endpoint.push_str(&format!("/calendars/{calendar_id}/events/{event_id}"));
-        self.client.call_json(&endpoint, &Vec::new()).await
+        from_value(self.client.call_json(&endpoint, &Vec::new()).await?)
+            .map_err(ApiError::SerdeError)
     }
 }

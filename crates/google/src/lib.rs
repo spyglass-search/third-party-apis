@@ -48,7 +48,7 @@ impl ApiClient for GoogClient {
         match self.client_type {
             ClientType::Calendar => "calendar.google.com".to_string(),
             ClientType::Drive => "drive.google.com".to_string(),
-            ClientType::Sheets => "sheets.googleapis.com".to_string(),
+            ClientType::Sheets => "sheets.google.com".to_string(),
         }
     }
 

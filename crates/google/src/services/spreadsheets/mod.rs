@@ -44,7 +44,7 @@ impl Sheets {
         &mut self,
         spreadsheet_id: &str,
         sheet_id: &str,
-        values: &[String],
+        values: &Vec<Vec<String>>,
         update_options: &types::UpdateRangeOptions,
     ) -> Result<types::AppendValuesResponse, ApiError> {
         // Determine the cell range based on the number of values
@@ -62,7 +62,7 @@ impl Sheets {
             "/spreadsheets/{spreadsheet_id}/values/{notation}:append"
         ));
 
-        let updates: Vec<Vec<String>> = vec![values.to_vec()];
+        let updates: Vec<Vec<String>> = values.clone();
         let body = ValueRange::with_values(updates);
 
         let client = self.client.get_check_client().await?;

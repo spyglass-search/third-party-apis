@@ -149,10 +149,12 @@ impl Sheets {
         values: &[String],
         update_options: &types::UpdateRangeOptions,
     ) -> Result<types::UpdateValuesResponse, ApiError> {
+        let mut notation = a1_notation::new(cell_range)
+            .map_err(|_| ApiError::BadRequest("Invalid cell range".to_string()))?;
+        notation = notation.with_sheet_name(sheet_id);
+
         let mut endpoint = self.client.endpoint.clone();
-        endpoint.push_str(&format!(
-            "/spreadsheets/{spreadsheet_id}/values/{sheet_id}!{cell_range}"
-        ));
+        endpoint.push_str(&format!("/spreadsheets/{spreadsheet_id}/values/{notation}"));
 
         let updates: Vec<Vec<String>> = vec![values.to_vec()];
         let body = ValueRange::with_values(updates);

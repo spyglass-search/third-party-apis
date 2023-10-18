@@ -23,6 +23,8 @@ pub type ApiClientBox = Box<dyn ApiClient>;
 pub enum ApiError {
     #[error("Authentication error: {0}")]
     AuthError(String),
+    #[error("Bad request: {0}")]
+    BadRequest(String),
     #[error(transparent)]
     RequestError(#[from] reqwest::Error),
     #[error(transparent)]

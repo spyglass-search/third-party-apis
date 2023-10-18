@@ -70,7 +70,7 @@ async fn main() -> anyhow::Result<()> {
             &sheet_id,
             &first_sheet.properties.title,
             "3:3",
-            &updated_values,
+            &vec![updated_values],
             &Default::default(),
         )
         .await?;

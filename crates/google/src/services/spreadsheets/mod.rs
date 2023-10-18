@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use a1_notation::{Address, RangeOrCell, A1};
 use libauth::{ApiClient, ApiError};
 use reqwest::StatusCode;
@@ -33,11 +35,61 @@ impl Sheets {
         cell_range: &str,
     ) -> Result<types::ValueRange, ApiError> {
         let mut endpoint = self.client.endpoint.clone();
+        // Parse and validate cell range
+        let mut notation = a1_notation::new(cell_range)
+            .map_err(|_| ApiError::BadRequest("Invalid cell range".to_string()))?;
+        notation = notation.with_sheet_name(sheet_id);
+
         endpoint.push_str(&format!(
-            "/spreadsheets/{spreadsheet_id}/values/{sheet_id}!{cell_range}"
+            "/spreadsheets/{spreadsheet_id}/values/{}",
+            notation
         ));
         serde_json::from_value::<types::ValueRange>(self.client.call_json(&endpoint, &[]).await?)
             .map_err(ApiError::SerdeError)
+    }
+
+    pub async fn read_rows_as_map(
+        &mut self,
+        spreadsheet_id: &str,
+        sheet_id: &str,
+        start: usize,
+        end: usize,
+    ) -> Result<Vec<HashMap<String, String>>, ApiError> {
+        // Make sure cell_range doesn't include the first row, that is always the header
+        let start = if start <= 1 { 2 } else { start };
+
+        let notation = a1_notation::new(&format!("{start}:{end}"))
+            .map_err(|_| ApiError::BadRequest("Invalid cell range".to_string()))?;
+
+        // Read header
+        let headers = self
+            .read_range(spreadsheet_id, sheet_id, "1:1")
+            .await?
+            .values
+            .first()
+            .cloned()
+            .ok_or(ApiError::BadRequest("No headers found".to_string()))?;
+
+        // Read rows
+        let rows: ValueRange = self
+            .read_range(spreadsheet_id, sheet_id, &notation.to_string())
+            .await?;
+
+        // Map rows to headers
+        let mut results: Vec<HashMap<String, String>> = Vec::new();
+        for (idx, row) in rows.values.iter().enumerate() {
+            let mut row_data = HashMap::new();
+            row_data.insert("_idx".to_string(), (start + idx).to_string());
+            for (idx, col) in row.iter().enumerate() {
+                let default = idx.to_string();
+                let header = headers.get(idx).unwrap_or(&default);
+                row_data.insert(header.to_owned(), col.to_owned());
+            }
+            results.push(row_data);
+        }
+
+        // Create mapping
+        Ok(results)
     }
 
     pub async fn append(

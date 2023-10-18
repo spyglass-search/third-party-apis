@@ -46,15 +46,11 @@ async fn main() -> anyhow::Result<()> {
     println!("\n------------------------------");
     let first_sheet = sheet_data.sheets.first().unwrap();
     let results = spreadsheet
-        .read_range(&sheet_id, &first_sheet.properties.title, "A1:AA5")
+        .read_rows_as_map(&sheet_id, &first_sheet.properties.title, 1, 10)
         .await?;
 
-    for (idx, x) in results.values.iter().enumerate() {
-        print!("{idx}: ");
-        for y in x.iter() {
-            print!(" {y},");
-        }
-        println!("");
+    for (idx, x) in results.iter().enumerate() {
+        println!("{idx}: {:?}", x);
     }
 
     let updated_values: Vec<String> = vec![

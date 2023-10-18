@@ -146,7 +146,7 @@ impl Sheets {
         spreadsheet_id: &str,
         sheet_id: &str,
         cell_range: &str,
-        values: &[String],
+        updates: &Vec<Vec<String>>,
         update_options: &types::UpdateRangeOptions,
     ) -> Result<types::UpdateValuesResponse, ApiError> {
         let mut notation = a1_notation::new(cell_range)
@@ -156,8 +156,7 @@ impl Sheets {
         let mut endpoint = self.client.endpoint.clone();
         endpoint.push_str(&format!("/spreadsheets/{spreadsheet_id}/values/{notation}"));
 
-        let updates: Vec<Vec<String>> = vec![values.to_vec()];
-        let body = ValueRange::with_values(updates);
+        let body = ValueRange::with_values(updates.to_owned());
 
         let client = self.client.get_check_client().await?;
         let resp = client

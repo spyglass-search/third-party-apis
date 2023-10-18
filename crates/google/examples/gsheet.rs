@@ -46,29 +46,44 @@ async fn main() -> anyhow::Result<()> {
     println!("\n------------------------------");
     let first_sheet = sheet_data.sheets.first().unwrap();
     let results = spreadsheet
-        .read_rows_as_map(&sheet_id, &first_sheet.properties.title, 1, 10)
+        .read_range(&sheet_id, &first_sheet.properties.title, "A1:AA5")
         .await?;
 
-    for (idx, x) in results.iter().enumerate() {
-        println!("{idx}: {:?}", x);
+    for (idx, x) in results.values.iter().enumerate() {
+        print!("{idx}: ");
+        for y in x.iter() {
+            print!(" {y},");
+        }
+        println!("");
     }
 
     let updated_values: Vec<String> = vec![
-        "test1".into(),
-        "test2".into(),
-        "test3".into(),
-        "test4".into(),
-        "test5".into(),
+        "updated_test1".into(),
+        "updated_test2".into(),
+        "updated_test3".into(),
+        "updated_test4".into(),
+        "updated_test5".into(),
     ];
 
     spreadsheet
-        .append(
+        .update_range(
             &sheet_id,
             &first_sheet.properties.title,
-            &vec![updated_values],
+            "3:3",
+            &updated_values,
             &Default::default(),
         )
         .await?;
+
+    // Example appending a row
+    // spreadsheet
+    //     .append(
+    //         &sheet_id,
+    //         &first_sheet.properties.title,
+    //         &vec![updated_values],
+    //         &Default::default(),
+    //     )
+    //     .await?;
 
     Ok(())
 }

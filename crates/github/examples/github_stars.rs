@@ -14,7 +14,7 @@ async fn main() -> anyhow::Result<()> {
     let mut client = GithubClient::new(client_id, client_secret, REDIRECT_URL, Default::default())?;
 
     let scopes = vec![AuthScopes::Repo.to_string(), AuthScopes::User.to_string()];
-    load_credentials(&mut client, &scopes).await;
+    load_credentials(&mut client, &scopes, true).await;
 
     let user = client.get_user().await?;
     println!("Authenticated w/ {}", user.login);

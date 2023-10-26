@@ -30,7 +30,7 @@ async fn main() -> anyhow::Result<()> {
         Default::default(),
     )?;
 
-    load_credentials(&mut client, &scopes).await;
+    load_credentials(&mut client, &scopes, true).await;
     let mut spreadsheet = Sheets::new(client);
 
     let sheet_data = spreadsheet.get(&sheet_id).await?;

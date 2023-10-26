@@ -22,7 +22,7 @@ async fn main() -> anyhow::Result<()> {
         Default::default(),
     )?;
 
-    load_credentials(&mut client, &scopes).await;
+    load_credentials(&mut client, &scopes, true).await;
 
     let user = client.get_user().await;
     let mut calendar = Calendar::new(client);

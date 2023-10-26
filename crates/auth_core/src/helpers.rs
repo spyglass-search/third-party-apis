@@ -14,7 +14,7 @@ const SAVED_CREDS_DIR: &str = "credentials";
 
 /// Helper function to load saved credentials from the filesystem.
 /// SHOULD ONLY BE USED FOR EXAMPLES AND TESTS
-pub async fn load_credentials(client: &mut impl ApiClient, scopes: &[String]) {
+pub async fn load_credentials(client: &mut impl ApiClient, scopes: &[String], use_pkce: bool) {
     let dir = Path::new(SAVED_CREDS_DIR);
     if !dir.exists() {
         let _ = std::fs::create_dir_all(SAVED_CREDS_DIR);
@@ -48,7 +48,7 @@ pub async fn load_credentials(client: &mut impl ApiClient, scopes: &[String]) {
 
         saved
     } else {
-        let token = get_token(client, scopes)
+        let token = get_token(client, scopes, use_pkce)
             .await
             .expect("Unable to request token");
 
@@ -65,9 +65,10 @@ pub async fn load_credentials(client: &mut impl ApiClient, scopes: &[String]) {
 pub async fn get_token(
     client: &impl ApiClient,
     scopes: &[String],
+    use_pkce: bool,
 ) -> anyhow::Result<BasicTokenResponse> {
     let options = AuthorizeOptions {
-        pkce: true,
+        pkce: use_pkce,
         ..Default::default()
     };
     let request = client.authorize(scopes, &options);

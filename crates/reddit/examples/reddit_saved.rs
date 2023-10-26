@@ -27,7 +27,7 @@ async fn main() -> anyhow::Result<()> {
         AuthScopes::MySubreddits.to_string(),
         AuthScopes::Read.to_string(),
     ];
-    load_credentials(&mut client, &scopes).await;
+    load_credentials(&mut client, &scopes, true).await;
 
     let user = client.get_user().await?;
     println!("Authenticated as user: {}", user.name);

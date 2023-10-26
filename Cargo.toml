@@ -1,8 +1,5 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/auth_core",
-    "crates/github",
-    "crates/google",
-    "crates/reddit"
+    "crates/*",
 ]

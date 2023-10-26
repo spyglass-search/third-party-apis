@@ -1,7 +1,7 @@
 use dotenv_codegen::dotenv;
 
 use libauth::helpers::load_credentials;
-use libhubspot::{AuthScope, HubspotClient};
+use libhubspot::{types::AuthScope, HubspotClient};
 
 const REDIRECT_URL: &str = "http://localhost:8080";
 
@@ -24,6 +24,8 @@ async fn main() -> anyhow::Result<()> {
 
     load_credentials(&mut client, &scopes, false).await;
 
+    let details = client.account_details().await?;
+    dbg!(&details);
     Ok(())
 
 }

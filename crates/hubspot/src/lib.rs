@@ -1,51 +1,15 @@
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
-use libauth::{ApiClient, OAuthParams, Credentials, auth_http_client, oauth_client, AuthorizeOptions, AuthorizationRequest};
+use libauth::{ApiClient, OAuthParams, Credentials, auth_http_client, oauth_client, AuthorizeOptions, AuthorizationRequest, ApiError};
 use oauth2::{basic::{BasicClient, BasicTokenResponse}, Scope, CsrfToken, AuthorizationCode, reqwest::async_http_client, TokenResponse, RequestTokenError};
 use reqwest::Client;
-use strum_macros::{AsRefStr, Display};
 use tokio::sync::watch;
+
+pub mod types;
 
 const AUTH_URL: &str = "https://app.hubspot.com/oauth/authorize";
 const TOKEN_URL: &str = "https://api.hubapi.com/oauth/v1/token";
-
-#[derive(AsRefStr, Debug, Display)]
-pub enum AuthScope {
-    #[strum(serialize = "crm.objects.companies.read")]
-    CompaniesRead,
-    #[strum(serialize = "crm.objects.companies.write")]
-    CompaniesWrite,
-    #[strum(serialize = "crm.objects.contacts.read")]
-    ContactsRead,
-    #[strum(serialize = "crm.objects.contacts.write")]
-    ContactsWrite,
-    #[strum(serialize = "crm.schemas.contacts.read")]
-    ContactsSchemaRead,
-    #[strum(serialize = "crm.objects.deals.read")]
-    DealsRead,
-    #[strum(serialize = "crm.objects.deals.write")]
-    DealsWrite,
-    #[strum(serialize = "crm.schemas.deals.read")]
-    DealsSchemaRead,
-    #[strum(serialize = "crm.schemas.deals.write")]
-    DealsSchemaWrite
-}
-
-impl AuthScope {
-    pub fn default_scopes() -> Vec<AuthScope> {
-        vec![
-            AuthScope::CompaniesRead,
-            AuthScope::CompaniesWrite,
-            AuthScope::ContactsRead,
-            AuthScope::ContactsWrite,
-            AuthScope::ContactsSchemaRead,
-            AuthScope::DealsRead,
-            AuthScope::DealsWrite,
-            AuthScope::DealsSchemaRead,
-            AuthScope::DealsSchemaWrite
-        ]
-    }
-}
+const API_ENDPOINT: &str = "https://api.hubapi.com";
 
 pub struct HubspotClient {
     http: Client,
@@ -63,7 +27,8 @@ impl ApiClient for HubspotClient {
     }
 
     async fn account_id(&mut self) -> anyhow::Result<String> {
-        Ok("test".into())
+        let details = self.account_details().await?;
+        Ok(details.portal_id.to_string())
     }
 
     fn credentials(&self) -> Credentials {
@@ -175,5 +140,11 @@ impl HubspotClient {
             on_refresh_tx: tx,
             on_refresh_rx: rx,
         })
+    }
+
+    pub async fn account_details(&mut self) -> Result<types::AccountDetails, ApiError> {
+        let endpoint = format!("{API_ENDPOINT}/account-info/v3/details");
+        serde_json::from_value::<types::AccountDetails>(self.call_json(&endpoint, &[]).await?)
+                .map_err(ApiError::SerdeError)
     }
 }

@@ -175,7 +175,7 @@ pub struct Task {
     pub properties: HashMap<String, String>,
 }
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct WebhookEvent {
     event_id: usize,

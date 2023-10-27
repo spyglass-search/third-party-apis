@@ -112,6 +112,17 @@ impl Call {
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
+pub struct Contact {
+    pub id: String,
+    pub created_at: String,
+    pub updated_at: String,
+    pub archived: bool,
+    pub archived_at: Option<String>,
+    pub properties: HashMap<String, Value>,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize)]
+#[serde(default, rename_all = "camelCase")]
 pub struct Email {
     pub id: String,
     pub created_at: String,

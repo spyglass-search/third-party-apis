@@ -24,6 +24,8 @@ const API_ENDPOINT: &str = "https://api.hubapi.com";
 pub enum CrmObject {
     #[strum(serialize = "calls")]
     Calls,
+    #[strum(serialize = "contacts")]
+    Contacts,
     #[strum(serialize = "emails")]
     Emails,
     #[strum(serialize = "meetings")]

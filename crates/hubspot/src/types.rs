@@ -88,7 +88,8 @@ pub struct Call {
 
 impl Call {
     pub fn title(&self) -> String {
-        self.properties.get("hs_call_title")
+        self.properties
+            .get("hs_call_title")
             .map(|s| s.as_str().unwrap_or(""))
             .map(|s| s.to_owned())
             .unwrap_or_default()

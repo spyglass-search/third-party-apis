@@ -28,14 +28,21 @@ async fn main() -> anyhow::Result<()> {
     }
 
     println!("\n--- CALLS ---");
-    let calls = client.list_objects::<libhubspot::types::Call>(
-        libhubspot::CrmObject::Calls,
-        &["hs_call_recording_url".into()],
-        None,
-        None,
-    ).await?;
+    let calls = client
+        .list_objects::<libhubspot::types::Call>(
+            libhubspot::CrmObject::Calls,
+            &["hs_call_recording_url".into()],
+            None,
+            None,
+        )
+        .await?;
     for (idx, call) in calls.results.iter().enumerate() {
-        println!("{idx}: {}\nbody:{}\nurl: {:?}", call.title(), call.raw_body(), call.recording_url());
+        println!(
+            "{idx}: {}\nbody:{}\nurl: {:?}",
+            call.title(),
+            call.raw_body(),
+            call.recording_url()
+        );
         println!("---")
     }
 

@@ -646,6 +646,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c4a1e36c821dbe04574f602848a19f742f4fb3c98d40449f11bcad18d6b17421"
 
 [[package]]
+name = "hubspot"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "auth_core",
+ "dotenv",
+ "dotenv_codegen",
+ "oauth2",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "strum 0.25.0",
+ "strum_macros 0.25.2",
+ "tokio",
+]
+
+[[package]]
 name = "hyper"
 version = "0.14.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"

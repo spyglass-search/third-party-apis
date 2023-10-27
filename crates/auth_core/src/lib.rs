@@ -183,7 +183,7 @@ pub fn auth_http_client(token: &str) -> Result<Client> {
         .build()?)
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct OAuthParams {
     pub auth_url: String,
     pub token_url: Option<String>,

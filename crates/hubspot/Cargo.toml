@@ -1,0 +1,25 @@
+[package]
+name = "hubspot"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0"
+async-trait = "0.1"
+auth_core = { path = "../auth_core" }
+oauth2 = "4.2.3"
+reqwest = { version = "0.11", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+strum = "0.25"
+strum_macros = "0.25"
+tokio = { version = "1.21", features = ["full"] }
+
+[dev-dependencies]
+dotenv = "0.15"
+dotenv_codegen = "0.15"
+
+[lib]
+name = "libhubspot"

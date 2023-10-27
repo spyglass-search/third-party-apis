@@ -40,6 +40,8 @@ jobs:
         GITHUB_CLIENT_SECRET: ${{ secrets.GH_CLIENT_SECRET }}
         REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
         REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+        HUBSPOT_CLIENT_ID: ${{ secrets.HUBSPOT_CLIENT_ID }}
+        HUBSPOT_CLIENT_SECRET: ${{ secrets.HUBSPOT_CLIENT_SECRET }}
       with:
         command: test
         args: --verbose --all
@@ -53,6 +55,8 @@ jobs:
         GITHUB_CLIENT_SECRET: ${{ secrets.GH_CLIENT_SECRET }}
         REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
         REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+        HUBSPOT_CLIENT_ID: ${{ secrets.HUBSPOT_CLIENT_ID }}
+        HUBSPOT_CLIENT_SECRET: ${{ secrets.HUBSPOT_CLIENT_SECRET }}
       with:
         command: clippy
         args: -- -D warnings
@@ -66,6 +70,8 @@ jobs:
         GITHUB_CLIENT_SECRET: ${{ secrets.GH_CLIENT_SECRET }}
         REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
         REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+        HUBSPOT_CLIENT_ID: ${{ secrets.HUBSPOT_CLIENT_ID }}
+        HUBSPOT_CLIENT_SECRET: ${{ secrets.HUBSPOT_CLIENT_SECRET }}
       with:
         command: fmt
         args: --all --check

@@ -190,15 +190,16 @@ impl HubspotClient {
             .map_err(ApiError::SerdeError)
     }
 
-    async fn get_object<T>(
+    pub async fn get_object<T>(
         &mut self,
         object: CrmObject,
         id: &str,
         properties: &[String],
     ) -> Result<T, ApiError>
-    where T: DeserializeOwned,
+    where
+        T: DeserializeOwned,
     {
-        let endpoint = format!("{API_ENDPOINT}/crm/v3/objects/{}/{id}", object.to_string());
+        let endpoint = format!("{API_ENDPOINT}/crm/v3/objects/{}/{id}", object);
         let props = properties.join(",");
         let query: Vec<(String, String)> =
             vec![("properties".into(), format!("hs_note_body,{props}"))];
@@ -207,7 +208,7 @@ impl HubspotClient {
             .map_err(ApiError::SerdeError)
     }
 
-    async fn list_objects<T>(
+    pub async fn list_objects<T>(
         &mut self,
         object: CrmObject,
         properties: &[String],
@@ -217,9 +218,25 @@ impl HubspotClient {
     where
         T: DeserializeOwned,
     {
-        let endpoint = format!("{API_ENDPOINT}/crm/v3/objects/{}", object.to_string());
+        let endpoint = format!("{API_ENDPOINT}/crm/v3/objects/{}", object);
+        let mut props = properties.to_vec();
+        // Some sane defaults
+        match object {
+            CrmObject::Calls => {
+                // Any notes about the call.
+                props.push("hs_call_body".into());
+                // INBOUND/OUTBOUND
+                props.push("hs_call_direction".into());
+                props.push("hs_call_title".into());
+            }
+            CrmObject::Notes => {
+                props.push("hs_note_body".into());
+            }
+            _ => {}
+        }
+
         let mut query: Vec<(String, String)> = vec![
-            ("properties".into(), properties.join(",")),
+            ("properties".into(), props.join(",")),
             ("limit".into(), limit.unwrap_or(10).to_string()),
         ];
 
@@ -229,30 +246,5 @@ impl HubspotClient {
 
         serde_json::from_value(self.call_json(&endpoint, &query).await?)
             .map_err(ApiError::SerdeError)
-    }
-
-    pub async fn get_note(
-        &mut self,
-        id: &str,
-        properties: &[String],
-    ) -> Result<types::Note, ApiError> {
-        let mut props = properties.to_vec();
-        props.push("hs_note_body".into());
-
-        self.get_object(CrmObject::Notes, id, &props).await
-    }
-
-    pub async fn list_notes(
-        &mut self,
-        properties: &[String],
-        after: Option<String>,
-        limit: Option<usize>,
-    ) -> Result<types::PagedResults<types::Note>, ApiError> {
-        let mut props = properties.to_vec();
-        // Always return note body
-        props.push("hs_note_body".into());
-
-        self.list_objects::<types::Note>(CrmObject::Notes, &props, after, limit)
-            .await
     }
 }

@@ -19,9 +19,24 @@ async fn main() -> anyhow::Result<()> {
 
     load_credentials(&mut client, &scopes, false).await;
 
-    let notes = client.list_notes(&[], None, None).await?;
+    println!("--- NOTES ---");
+    let notes = client
+        .list_objects::<libhubspot::types::Note>(libhubspot::CrmObject::Notes, &[], None, None)
+        .await?;
     for (idx, note) in notes.results.iter().enumerate() {
-        println!("{idx}: {note:?}");
+        println!("{idx}: {}", note.raw_body());
+    }
+
+    println!("\n--- CALLS ---");
+    let calls = client.list_objects::<libhubspot::types::Call>(
+        libhubspot::CrmObject::Calls,
+        &["hs_call_recording_url".into()],
+        None,
+        None,
+    ).await?;
+    for (idx, call) in calls.results.iter().enumerate() {
+        println!("{idx}: {}\nbody:{}\nurl: {:?}", call.title(), call.raw_body(), call.recording_url());
+        println!("---")
     }
 
     Ok(())

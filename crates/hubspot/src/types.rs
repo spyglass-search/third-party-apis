@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use strum_macros::{AsRefStr, Display};
 
 #[derive(Debug, Default, Deserialize, Serialize)]
@@ -70,9 +71,91 @@ pub struct PagedResults<T> {
     pub results: Vec<T>,
 }
 
+/// Note: That the CRM objects "Call", "Email", "Meeting", etc. all have
+/// pretty much the same structure. This is separated out for type safety and
+/// in case there's any specific impl details for a particular object (e.g. note
+/// convience fn to return the note body).
+#[derive(Debug, Default, Deserialize, Serialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct Call {
+    pub id: String,
+    pub created_at: String,
+    pub updated_at: String,
+    pub archived: bool,
+    pub archived_at: Option<String>,
+    pub properties: HashMap<String, Value>,
+}
+
+impl Call {
+    pub fn title(&self) -> String {
+        self.properties.get("hs_call_title")
+            .map(|s| s.as_str().unwrap_or(""))
+            .map(|s| s.to_owned())
+            .unwrap_or_default()
+    }
+
+    pub fn raw_body(&self) -> String {
+        self.properties
+            .get("hs_call_body")
+            .map(|s| s.as_str().unwrap_or(""))
+            .map(|s| s.to_owned())
+            .unwrap_or_default()
+    }
+
+    pub fn recording_url(&self) -> Option<String> {
+        self.properties
+            .get("hs_call_recording_url")
+            .map(|s| s.as_str().unwrap_or(""))
+            .map(|s| s.to_owned())
+    }
+}
+
+#[derive(Debug, Default, Deserialize, Serialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct Email {
+    pub id: String,
+    pub created_at: String,
+    pub updated_at: String,
+    pub archived: bool,
+    pub archived_at: Option<String>,
+    pub properties: HashMap<String, Value>,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct Meeting {
+    pub id: String,
+    pub created_at: String,
+    pub updated_at: String,
+    pub archived: bool,
+    pub archived_at: Option<String>,
+    pub properties: HashMap<String, Value>,
+}
+
 #[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Note {
+    pub id: String,
+    pub created_at: String,
+    pub updated_at: String,
+    pub archived: bool,
+    pub archived_at: Option<String>,
+    pub properties: HashMap<String, Value>,
+}
+
+impl Note {
+    pub fn raw_body(&self) -> String {
+        self.properties
+            .get("hs_note_body")
+            .map(|s| s.as_str().unwrap_or(""))
+            .map(|s| s.to_owned())
+            .unwrap_or_default()
+    }
+}
+
+#[derive(Debug, Default, Deserialize, Serialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct Task {
     pub id: String,
     pub created_at: String,
     pub updated_at: String,

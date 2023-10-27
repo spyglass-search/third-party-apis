@@ -174,3 +174,20 @@ pub struct Task {
     pub archived_at: Option<String>,
     pub properties: HashMap<String, String>,
 }
+
+#[derive(Debug, Default, Deserialize, Serialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct WebhookEvent {
+    event_id: usize,
+    subscription_id: usize,
+    portal_id: usize,
+    app_id: usize,
+    occurred_at: u64,
+    subscription_type: String,
+    attempt_number: usize,
+    object_id: usize,
+    property_name: String,
+    property_value: String,
+    change_source: String,
+    source_id: String,
+}

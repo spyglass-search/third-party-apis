@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 use strum_macros::{AsRefStr, Display};
 
@@ -10,7 +12,7 @@ pub struct AccountDetails {
     pub utc_offset: String,
     pub utc_offset_milliseconds: i32,
     pub ui_domain: String,
-    pub data_hosting_location: String
+    pub data_hosting_location: String,
 }
 
 #[derive(AsRefStr, Debug, Display)]
@@ -32,7 +34,7 @@ pub enum AuthScope {
     #[strum(serialize = "crm.schemas.deals.read")]
     DealsSchemaRead,
     #[strum(serialize = "crm.schemas.deals.write")]
-    DealsSchemaWrite
+    DealsSchemaWrite,
 }
 
 impl AuthScope {
@@ -46,7 +48,35 @@ impl AuthScope {
             AuthScope::DealsRead,
             AuthScope::DealsWrite,
             AuthScope::DealsSchemaRead,
-            AuthScope::DealsSchemaWrite
+            AuthScope::DealsSchemaWrite,
         ]
     }
+}
+
+#[derive(Debug, Default, Deserialize, Serialize)]
+pub struct NextPage {
+    pub after: String,
+    pub link: String,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize)]
+pub struct Paging {
+    pub next: NextPage,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize)]
+pub struct PagedResults<T> {
+    pub paging: Option<Paging>,
+    pub results: Vec<T>,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct Note {
+    pub id: String,
+    pub created_at: String,
+    pub updated_at: String,
+    pub archived: bool,
+    pub archived_at: Option<String>,
+    pub properties: HashMap<String, String>,
 }

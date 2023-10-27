@@ -1,7 +1,14 @@
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
-use libauth::{ApiClient, OAuthParams, Credentials, auth_http_client, oauth_client, AuthorizeOptions, AuthorizationRequest, ApiError};
-use oauth2::{basic::{BasicClient, BasicTokenResponse}, Scope, CsrfToken, AuthorizationCode, reqwest::async_http_client, TokenResponse, RequestTokenError};
+use libauth::{
+    auth_http_client, oauth_client, ApiClient, ApiError, AuthorizationRequest, AuthorizeOptions,
+    Credentials, OAuthParams,
+};
+use oauth2::{
+    basic::{BasicClient, BasicTokenResponse},
+    reqwest::async_http_client,
+    AuthorizationCode, CsrfToken, RequestTokenError, Scope, TokenResponse,
+};
 use reqwest::Client;
 use tokio::sync::watch;
 
@@ -81,34 +88,48 @@ impl ApiClient for HubspotClient {
         _pkce_verifier: Option<String>,
     ) -> anyhow::Result<BasicTokenResponse> {
         let code = AuthorizationCode::new(code.to_owned());
-        let mut exchange = self.oauth.exchange_code(code);
-        exchange = exchange.add_extra_param("client_id", self.oauth.client_id().to_string())
+        let exchange = self
+            .oauth
+            .exchange_code(code)
+            .add_extra_param("client_id", self.oauth.client_id().to_string())
             .add_extra_param("client_secret", self.secret.clone());
 
-        let req = exchange.request_async(async_http_client).await;
-        dbg!(&req);
-
-        match req {
+        match exchange.request_async(async_http_client).await {
             Ok(val) => Ok(val),
-            Err(err) => {
-                match err {
-                    RequestTokenError::Parse(err, og) => {
-                        dbg!(&std::str::from_utf8(&og));
-                        Err(anyhow!(err.to_string()))
-                    }
-                    x => Err(anyhow!(x.to_string()))
+            Err(err) => match err {
+                RequestTokenError::Parse(err, og) => {
+                    let msg = std::str::from_utf8(&og)
+                        .map(|x| x.to_string())
+                        .unwrap_or(err.to_string());
+                    Err(anyhow!(msg))
                 }
+                x => Err(anyhow!(x.to_string())),
             },
         }
     }
 
     async fn refresh_credentials(&mut self) -> Result<()> {
         if let Some(refresh_token) = &self.credentials.refresh_token {
-            let new_token = self
+            let req = self
                 .oauth
                 .exchange_refresh_token(refresh_token)
-                .request_async(async_http_client)
-                .await?;
+                .add_extra_param("client_id", self.oauth.client_id().to_string())
+                .add_extra_param("client_secret", self.secret.clone());
+
+            let new_token = match req.request_async(async_http_client).await {
+                Ok(token) => token,
+                Err(err) => {
+                    return match err {
+                        RequestTokenError::Parse(err, og) => {
+                            let msg = std::str::from_utf8(&og)
+                                .map(|x| x.to_string())
+                                .unwrap_or(err.to_string());
+                            Err(anyhow!(msg))
+                        }
+                        x => Err(anyhow!(x.to_string())),
+                    };
+                }
+            };
 
             self.credentials.refresh_token(&new_token);
             self.http = auth_http_client(new_token.access_token().secret())?;
@@ -121,7 +142,12 @@ impl ApiClient for HubspotClient {
 }
 
 impl HubspotClient {
-    pub fn new(client_id: &str, client_secret: &str, redirect_url: &str, creds: Credentials) -> anyhow::Result<Self> {
+    pub fn new(
+        client_id: &str,
+        client_secret: &str,
+        redirect_url: &str,
+        creds: Credentials,
+    ) -> anyhow::Result<Self> {
         let params = OAuthParams {
             client_id: client_id.to_string(),
             client_secret: Some(client_secret.to_string()),
@@ -145,6 +171,30 @@ impl HubspotClient {
     pub async fn account_details(&mut self) -> Result<types::AccountDetails, ApiError> {
         let endpoint = format!("{API_ENDPOINT}/account-info/v3/details");
         serde_json::from_value::<types::AccountDetails>(self.call_json(&endpoint, &[]).await?)
-                .map_err(ApiError::SerdeError)
+            .map_err(ApiError::SerdeError)
+    }
+
+    pub async fn list_notes(
+        &mut self,
+        properties: &[String],
+        after: Option<String>,
+        limit: Option<usize>,
+    ) -> Result<types::PagedResults<types::Note>, ApiError> {
+        let endpoint = format!("{API_ENDPOINT}/crm/v3/objects/notes");
+
+        let props = properties.join(",");
+        let mut query: Vec<(String, String)> = vec![
+            ("properties".into(), format!("hs_note_body,{props}")),
+            ("limit".into(), limit.unwrap_or(10).to_string()),
+        ];
+
+        if let Some(after) = after {
+            query.push(("after".into(), after.clone()));
+        }
+
+        serde_json::from_value::<types::PagedResults<types::Note>>(
+            self.call_json(&endpoint, &query).await?,
+        )
+        .map_err(ApiError::SerdeError)
     }
 }

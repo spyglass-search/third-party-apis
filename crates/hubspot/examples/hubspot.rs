@@ -15,17 +15,14 @@ async fn main() -> anyhow::Result<()> {
     let client_id = dotenv!("HUBSPOT_CLIENT_ID");
     let secret = dotenv!("HUBSPOT_CLIENT_SECRET");
 
-    let mut client = HubspotClient::new(
-        client_id,
-        secret,
-        REDIRECT_URL,
-        Default::default()
-    )?;
+    let mut client = HubspotClient::new(client_id, secret, REDIRECT_URL, Default::default())?;
 
     load_credentials(&mut client, &scopes, false).await;
 
-    let details = client.account_details().await?;
-    dbg!(&details);
-    Ok(())
+    let notes = client.list_notes(&[], None, None).await?;
+    for (idx, note) in notes.results.iter().enumerate() {
+        println!("{idx}: {note:?}");
+    }
 
+    Ok(())
 }

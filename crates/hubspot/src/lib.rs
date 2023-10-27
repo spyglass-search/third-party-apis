@@ -174,6 +174,20 @@ impl HubspotClient {
             .map_err(ApiError::SerdeError)
     }
 
+    pub async fn get_note(
+        &mut self,
+        id: &str,
+        properties: &[String],
+    ) -> Result<types::Note, ApiError> {
+        let endpoint = format!("{API_ENDPOINT}/crm/v3/objects/notes/{id}");
+        let props = properties.join(",");
+        let query: Vec<(String, String)> =
+            vec![("properties".into(), format!("hs_note_body,{props}"))];
+
+        serde_json::from_value::<types::Note>(self.call_json(&endpoint, &query).await?)
+            .map_err(ApiError::SerdeError)
+    }
+
     pub async fn list_notes(
         &mut self,
         properties: &[String],

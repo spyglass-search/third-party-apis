@@ -11,7 +11,7 @@ use oauth2::{
 };
 use reqwest::Client;
 use serde::de::DeserializeOwned;
-use strum_macros::Display;
+use strum_macros::{Display, EnumString};
 use tokio::sync::watch;
 
 pub mod types;
@@ -20,7 +20,7 @@ const AUTH_URL: &str = "https://app.hubspot.com/oauth/authorize";
 const TOKEN_URL: &str = "https://api.hubapi.com/oauth/v1/token";
 const API_ENDPOINT: &str = "https://api.hubapi.com";
 
-#[derive(Display)]
+#[derive(Display, EnumString)]
 pub enum CrmObject {
     #[strum(serialize = "calls")]
     Calls,
@@ -202,9 +202,20 @@ impl HubspotClient {
         T: DeserializeOwned,
     {
         let endpoint = format!("{API_ENDPOINT}/crm/v3/objects/{}/{id}", object);
+
         let props = properties.join(",");
-        let query: Vec<(String, String)> =
-            vec![("properties".into(), format!("hs_note_body,{props}"))];
+        let query: Vec<(String, String)> = match &object {
+            CrmObject::Notes => {
+                vec![("properties".into(), format!("hs_note_body,{props}"))]
+            }
+            _ => {
+                if !properties.is_empty() {
+                    vec![("properties".into(), format!("{props}"))]
+                } else {
+                    vec![]
+                }
+            }
+        };
 
         serde_json::from_value(self.call_json(&endpoint, &query).await?)
             .map_err(ApiError::SerdeError)
@@ -237,10 +248,14 @@ impl HubspotClient {
             _ => {}
         }
 
-        let mut query: Vec<(String, String)> = vec![
-            ("properties".into(), props.join(",")),
-            ("limit".into(), limit.unwrap_or(10).to_string()),
-        ];
+        let mut query: Vec<(String, String)> = if !props.is_empty() {
+            vec![
+                ("properties".into(), props.join(",")),
+                ("limit".into(), limit.unwrap_or(10).to_string()),
+            ]
+        } else {
+            vec![("limit".into(), limit.unwrap_or(10).to_string())]
+        };
 
         if let Some(after) = after {
             query.push(("after".into(), after.clone()));

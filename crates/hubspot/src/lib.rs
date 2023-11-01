@@ -53,7 +53,7 @@ const DEFAULT_PROPERTIES: &[(CrmObject, &[&str])] = &[
     ),
 ];
 
-#[derive(Display, EnumString, PartialEq, Eq)]
+#[derive(Display, EnumString, PartialEq, Eq, Clone)]
 pub enum CrmObject {
     #[strum(serialize = "calls")]
     Calls,

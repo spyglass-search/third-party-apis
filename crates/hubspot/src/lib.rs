@@ -51,15 +51,6 @@ const DEFAULT_PROPERTIES: &[(CrmObject, &[&str])] = &[
             "hs_attachment_ids",
         ],
     ),
-    (
-        CrmObject::Notes,
-        &[
-            "hs_timestamp",
-            "hs_note_body",
-            "hubspot_owner_id",
-            "hs_attachment_ids",
-        ],
-    ),
 ];
 
 #[derive(Display, EnumString, PartialEq, Eq)]
@@ -276,30 +267,28 @@ impl HubspotClient {
         T: DeserializeOwned,
     {
         let endpoint = format!("{API_ENDPOINT}/crm/v3/objects/{}", object);
-        let mut props = properties.to_vec();
-        // Some sane defaults
-        match object {
-            CrmObject::Calls => {
-                // Any notes about the call.
-                props.push("hs_call_body".into());
-                // INBOUND/OUTBOUND
-                props.push("hs_call_direction".into());
-                props.push("hs_call_title".into());
-            }
-            CrmObject::Notes => {
-                props.push("hs_note_body".into());
-            }
-            _ => {}
-        }
+        let props = properties.to_vec();
+        let default_props = default_prop_as_string(&object);
 
-        let mut query: Vec<(String, String)> = if !props.is_empty() {
-            vec![
-                ("properties".into(), props.join(",")),
-                ("limit".into(), limit.unwrap_or(10).to_string()),
-            ]
-        } else {
-            vec![("limit".into(), limit.unwrap_or(10).to_string())]
+        let mut query: Vec<(String, String)> = match default_props {
+            Some(default_props) => {
+                let prop_string = props.join(",");
+                vec![(
+                    "properties".into(),
+                    format!("{default_props},{prop_string}"),
+                )]
+            }
+            None => {
+                if !properties.is_empty() {
+                    let prop_string = props.join(",");
+                    vec![("properties".into(), format!("{prop_string}"))]
+                } else {
+                    vec![]
+                }
+            }
         };
+
+        query.push(("limit".into(), limit.unwrap_or(10).to_string()));
 
         if let Some(after) = after {
             query.push(("after".into(), after.clone()));

@@ -245,7 +245,7 @@ impl HubspotClient {
             }
             None => {
                 if !properties.is_empty() {
-                    vec![("properties".into(), format!("{props}"))]
+                    vec![("properties".into(), props.to_string())]
                 } else {
                     vec![]
                 }
@@ -281,7 +281,7 @@ impl HubspotClient {
             None => {
                 if !properties.is_empty() {
                     let prop_string = props.join(",");
-                    vec![("properties".into(), format!("{prop_string}"))]
+                    vec![("properties".into(), prop_string.to_string())]
                 } else {
                     vec![]
                 }

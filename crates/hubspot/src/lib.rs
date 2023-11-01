@@ -11,7 +11,7 @@ use oauth2::{
 };
 use reqwest::Client;
 use serde::de::DeserializeOwned;
-use strum_macros::Display;
+use strum_macros::{Display, EnumString};
 use tokio::sync::watch;
 
 pub mod types;
@@ -20,7 +20,40 @@ const AUTH_URL: &str = "https://app.hubspot.com/oauth/authorize";
 const TOKEN_URL: &str = "https://api.hubapi.com/oauth/v1/token";
 const API_ENDPOINT: &str = "https://api.hubapi.com";
 
-#[derive(Display)]
+const DEFAULT_PROPERTIES: &[(CrmObject, &[&str])] = &[
+    (
+        CrmObject::Calls,
+        &[
+            "hs_timestamp",
+            "hs_call_body",
+            "hs_call_callee_object_id",
+            "hs_call_duration",
+            "hs_call_direction",
+            "hs_call_disposition",
+            "hs_call_from_number",
+            "hs_call_recording_url",
+            "hs_call_status",
+            "hs_activity_type",
+            "hs_attachment_ids",
+            "hubspot_owner_id",
+            "hs_call_to_number",
+            "hs_call_title",
+            "hs_createdate",
+            "hs_lastmodifieddate",
+        ],
+    ),
+    (
+        CrmObject::Notes,
+        &[
+            "hs_timestamp",
+            "hs_note_body",
+            "hubspot_owner_id",
+            "hs_attachment_ids",
+        ],
+    ),
+];
+
+#[derive(Display, EnumString, PartialEq, Eq)]
 pub enum CrmObject {
     #[strum(serialize = "calls")]
     Calls,
@@ -202,9 +235,22 @@ impl HubspotClient {
         T: DeserializeOwned,
     {
         let endpoint = format!("{API_ENDPOINT}/crm/v3/objects/{}/{id}", object);
+
         let props = properties.join(",");
-        let query: Vec<(String, String)> =
-            vec![("properties".into(), format!("hs_note_body,{props}"))];
+        let default_props = default_prop_as_string(&object);
+
+        let query: Vec<(String, String)> = match default_props {
+            Some(default_props) => {
+                vec![("properties".into(), format!("{default_props},{props}"))]
+            }
+            None => {
+                if !properties.is_empty() {
+                    vec![("properties".into(), props.to_string())]
+                } else {
+                    vec![]
+                }
+            }
+        };
 
         serde_json::from_value(self.call_json(&endpoint, &query).await?)
             .map_err(ApiError::SerdeError)
@@ -221,26 +267,28 @@ impl HubspotClient {
         T: DeserializeOwned,
     {
         let endpoint = format!("{API_ENDPOINT}/crm/v3/objects/{}", object);
-        let mut props = properties.to_vec();
-        // Some sane defaults
-        match object {
-            CrmObject::Calls => {
-                // Any notes about the call.
-                props.push("hs_call_body".into());
-                // INBOUND/OUTBOUND
-                props.push("hs_call_direction".into());
-                props.push("hs_call_title".into());
-            }
-            CrmObject::Notes => {
-                props.push("hs_note_body".into());
-            }
-            _ => {}
-        }
+        let props = properties.to_vec();
+        let default_props = default_prop_as_string(&object);
 
-        let mut query: Vec<(String, String)> = vec![
-            ("properties".into(), props.join(",")),
-            ("limit".into(), limit.unwrap_or(10).to_string()),
-        ];
+        let mut query: Vec<(String, String)> = match default_props {
+            Some(default_props) => {
+                let prop_string = props.join(",");
+                vec![(
+                    "properties".into(),
+                    format!("{default_props},{prop_string}"),
+                )]
+            }
+            None => {
+                if !properties.is_empty() {
+                    let prop_string = props.join(",");
+                    vec![("properties".into(), prop_string.to_string())]
+                } else {
+                    vec![]
+                }
+            }
+        };
+
+        query.push(("limit".into(), limit.unwrap_or(10).to_string()));
 
         if let Some(after) = after {
             query.push(("after".into(), after.clone()));
@@ -249,4 +297,13 @@ impl HubspotClient {
         serde_json::from_value(self.call_json(&endpoint, &query).await?)
             .map_err(ApiError::SerdeError)
     }
+}
+
+pub fn default_prop_as_string(object: &CrmObject) -> Option<String> {
+    for (obj, props) in DEFAULT_PROPERTIES {
+        if object.eq(obj) {
+            return Some(props.join(",").to_string());
+        }
+    }
+    None
 }

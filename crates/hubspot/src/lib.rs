@@ -20,7 +20,49 @@ const AUTH_URL: &str = "https://app.hubspot.com/oauth/authorize";
 const TOKEN_URL: &str = "https://api.hubapi.com/oauth/v1/token";
 const API_ENDPOINT: &str = "https://api.hubapi.com";
 
-#[derive(Display, EnumString)]
+const DEFAULT_PROPERTIES: &[(CrmObject, &[&str])] = &[
+    (
+        CrmObject::Calls,
+        &[
+            "hs_timestamp",
+            "hs_call_body",
+            "hs_call_callee_object_id",
+            "hs_call_duration",
+            "hs_call_direction",
+            "hs_call_disposition",
+            "hs_call_from_number",
+            "hs_call_recording_url",
+            "hs_call_status",
+            "hs_activity_type",
+            "hs_attachment_ids",
+            "hubspot_owner_id",
+            "hs_call_to_number",
+            "hs_call_title",
+            "hs_createdate",
+            "hs_lastmodifieddate",
+        ],
+    ),
+    (
+        CrmObject::Notes,
+        &[
+            "hs_timestamp",
+            "hs_note_body",
+            "hubspot_owner_id",
+            "hs_attachment_ids",
+        ],
+    ),
+    (
+        CrmObject::Notes,
+        &[
+            "hs_timestamp",
+            "hs_note_body",
+            "hubspot_owner_id",
+            "hs_attachment_ids",
+        ],
+    ),
+];
+
+#[derive(Display, EnumString, PartialEq, Eq)]
 pub enum CrmObject {
     #[strum(serialize = "calls")]
     Calls,
@@ -204,11 +246,13 @@ impl HubspotClient {
         let endpoint = format!("{API_ENDPOINT}/crm/v3/objects/{}/{id}", object);
 
         let props = properties.join(",");
-        let query: Vec<(String, String)> = match &object {
-            CrmObject::Notes => {
-                vec![("properties".into(), format!("hs_note_body,{props}"))]
+        let default_props = default_prop_as_string(&object);
+
+        let query: Vec<(String, String)> = match default_props {
+            Some(default_props) => {
+                vec![("properties".into(), format!("{default_props},{props}"))]
             }
-            _ => {
+            None => {
                 if !properties.is_empty() {
                     vec![("properties".into(), format!("{props}"))]
                 } else {
@@ -264,4 +308,13 @@ impl HubspotClient {
         serde_json::from_value(self.call_json(&endpoint, &query).await?)
             .map_err(ApiError::SerdeError)
     }
+}
+
+pub fn default_prop_as_string(object: &CrmObject) -> Option<String> {
+    for (obj, props) in DEFAULT_PROPERTIES {
+        if object.eq(obj) {
+            return Some(props.join(",").to_string());
+        }
+    }
+    None
 }

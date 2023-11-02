@@ -53,7 +53,7 @@ const DEFAULT_PROPERTIES: &[(CrmObject, &[&str])] = &[
     ),
 ];
 
-#[derive(Display, EnumString, PartialEq, Eq)]
+#[derive(Display, EnumString, PartialEq, Eq, Clone)]
 pub enum CrmObject {
     #[strum(serialize = "calls")]
     Calls,
@@ -230,6 +230,7 @@ impl HubspotClient {
         object: CrmObject,
         id: &str,
         properties: &[String],
+        associations: &[String],
     ) -> Result<T, ApiError>
     where
         T: DeserializeOwned,
@@ -239,7 +240,7 @@ impl HubspotClient {
         let props = properties.join(",");
         let default_props = default_prop_as_string(&object);
 
-        let query: Vec<(String, String)> = match default_props {
+        let mut query: Vec<(String, String)> = match default_props {
             Some(default_props) => {
                 vec![("properties".into(), format!("{default_props},{props}"))]
             }
@@ -252,6 +253,10 @@ impl HubspotClient {
             }
         };
 
+        if !associations.is_empty() {
+            query.push(("associations".into(), associations.join(",").to_string()))
+        }
+
         serde_json::from_value(self.call_json(&endpoint, &query).await?)
             .map_err(ApiError::SerdeError)
     }
@@ -260,6 +265,7 @@ impl HubspotClient {
         &mut self,
         object: CrmObject,
         properties: &[String],
+        associations: &[String],
         after: Option<String>,
         limit: Option<usize>,
     ) -> Result<types::PagedResults<T>, ApiError>
@@ -292,6 +298,10 @@ impl HubspotClient {
 
         if let Some(after) = after {
             query.push(("after".into(), after.clone()));
+        }
+
+        if !associations.is_empty() {
+            query.push(("associations".into(), associations.join(",").to_string()))
         }
 
         serde_json::from_value(self.call_json(&endpoint, &query).await?)

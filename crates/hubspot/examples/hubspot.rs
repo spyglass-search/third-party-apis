@@ -21,7 +21,7 @@ async fn main() -> anyhow::Result<()> {
 
     println!("--- NOTES ---");
     let notes = client
-        .list_objects::<libhubspot::types::Note>(libhubspot::CrmObject::Notes, &[], None, None)
+        .list_objects::<libhubspot::types::Note>(libhubspot::CrmObject::Notes, &[], &[], None, None)
         .await?;
     for (idx, note) in notes.results.iter().enumerate() {
         println!("{idx}: {}", note.raw_body());
@@ -32,6 +32,7 @@ async fn main() -> anyhow::Result<()> {
         .list_objects::<libhubspot::types::Call>(
             libhubspot::CrmObject::Calls,
             &["hs_call_recording_url".into()],
+            &[],
             None,
             None,
         )

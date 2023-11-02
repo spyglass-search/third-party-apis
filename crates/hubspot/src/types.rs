@@ -71,6 +71,18 @@ pub struct PagedResults<T> {
     pub results: Vec<T>,
 }
 
+#[derive(Debug, Default, Deserialize, Serialize)]
+pub struct AssociationResult {
+    pub results: Vec<Association>,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize)]
+pub struct Association {
+    pub id: String,
+    #[serde(rename = "type")]
+    pub association_type: String,
+}
+
 /// Note: That the CRM objects "Call", "Email", "Meeting", etc. all have
 /// pretty much the same structure. This is separated out for type safety and
 /// in case there's any specific impl details for a particular object (e.g. note
@@ -84,6 +96,7 @@ pub struct Call {
     pub archived: bool,
     pub archived_at: Option<String>,
     pub properties: HashMap<String, Value>,
+    pub associations: Option<HashMap<String, AssociationResult>>,
 }
 
 impl Call {
@@ -120,6 +133,7 @@ pub struct Contact {
     pub archived: bool,
     pub archived_at: Option<String>,
     pub properties: HashMap<String, Value>,
+    pub associations: Option<HashMap<String, AssociationResult>>,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]
@@ -131,6 +145,7 @@ pub struct Email {
     pub archived: bool,
     pub archived_at: Option<String>,
     pub properties: HashMap<String, Value>,
+    pub associations: Option<HashMap<String, AssociationResult>>,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]
@@ -142,6 +157,7 @@ pub struct Meeting {
     pub archived: bool,
     pub archived_at: Option<String>,
     pub properties: HashMap<String, Value>,
+    pub associations: Option<HashMap<String, AssociationResult>>,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]
@@ -153,6 +169,7 @@ pub struct Note {
     pub archived: bool,
     pub archived_at: Option<String>,
     pub properties: HashMap<String, Value>,
+    pub associations: Option<HashMap<String, AssociationResult>>,
 }
 
 impl Note {
@@ -174,6 +191,7 @@ pub struct Task {
     pub archived: bool,
     pub archived_at: Option<String>,
     pub properties: HashMap<String, String>,
+    pub associations: Option<HashMap<String, AssociationResult>>,
 }
 
 #[derive(Debug, Default, Deserialize)]

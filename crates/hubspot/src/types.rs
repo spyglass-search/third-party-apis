@@ -197,16 +197,16 @@ pub struct Task {
 #[derive(Debug, Default, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct WebhookEvent {
-    event_id: usize,
-    subscription_id: usize,
-    portal_id: usize,
-    app_id: usize,
-    occurred_at: u64,
-    subscription_type: String,
-    attempt_number: usize,
-    object_id: usize,
-    property_name: String,
-    property_value: String,
-    change_source: String,
-    source_id: String,
+    pub event_id: usize,
+    pub subscription_id: usize,
+    pub portal_id: usize,
+    pub app_id: usize,
+    pub occurred_at: u64,
+    pub subscription_type: String,
+    pub attempt_number: usize,
+    pub object_id: usize,
+    pub property_name: String,
+    pub property_value: String,
+    pub change_source: String,
+    pub source_id: String,
 }

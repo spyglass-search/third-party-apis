@@ -194,7 +194,7 @@ pub struct Task {
     pub associations: Option<HashMap<String, AssociationResult>>,
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct WebhookEvent {
     pub event_id: usize,

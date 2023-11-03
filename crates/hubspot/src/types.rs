@@ -194,7 +194,13 @@ pub struct Task {
     pub associations: Option<HashMap<String, AssociationResult>>,
 }
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct HubSpotMetaData {
+    pub portal_id: i32,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
 #[serde(default, rename_all = "camelCase")]
 pub struct WebhookEvent {
     pub event_id: usize,

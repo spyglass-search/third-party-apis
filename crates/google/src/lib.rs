@@ -1,5 +1,6 @@
 use bytes::Bytes;
 use libauth::{AuthorizeOptions, OAuthParams};
+use serde_json::Value;
 use std::str::FromStr;
 use tokio::sync::watch;
 
@@ -55,6 +56,10 @@ impl ApiClient for GoogClient {
     async fn account_id(&mut self) -> Result<String> {
         let user = self.get_user().await?;
         Ok(user.email)
+    }
+
+    async fn account_metadata(&mut self) -> Option<Value> {
+        None
     }
 
     fn credentials(&self) -> Credentials {

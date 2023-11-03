@@ -16,6 +16,7 @@ use reqwest::Client;
 
 pub mod types;
 use serde::de::DeserializeOwned;
+use serde_json::Value;
 use tokio::sync::watch;
 use types::ApiResponse;
 
@@ -41,6 +42,10 @@ impl ApiClient for GithubClient {
     async fn account_id(&mut self) -> Result<String> {
         let user = self.get_user().await?;
         Ok(user.login)
+    }
+
+    async fn account_metadata(&mut self) -> Option<Value> {
+        None
     }
 
     fn credentials(&self) -> Credentials {

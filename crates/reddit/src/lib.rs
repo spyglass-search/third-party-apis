@@ -10,6 +10,7 @@ use oauth2::{
 };
 
 use reqwest::Client;
+use serde_json::Value;
 use tokio::sync::watch;
 use types::{ApiResponse, DataWrapper, Listing, Post};
 
@@ -43,6 +44,10 @@ impl ApiClient for RedditClient {
             self.username = Some(name.clone());
             Ok(name)
         }
+    }
+
+    async fn account_metadata(&mut self) -> Option<Value> {
+        None
     }
 
     fn credentials(&self) -> Credentials {

@@ -11,8 +11,10 @@ use oauth2::{
 };
 use reqwest::Client;
 use serde::de::DeserializeOwned;
+use serde_json::Value;
 use strum_macros::{Display, EnumString};
 use tokio::sync::watch;
+use types::HubSpotMetaData;
 
 pub mod types;
 
@@ -87,6 +89,15 @@ impl ApiClient for HubspotClient {
     async fn account_id(&mut self) -> anyhow::Result<String> {
         let details = self.account_details().await?;
         Ok(details.portal_id.to_string())
+    }
+
+    async fn account_metadata(&mut self) -> Option<Value> {
+        self.account_details().await.ok().map(|details| {
+            serde_json::to_value(HubSpotMetaData {
+                portal_id: details.portal_id,
+            })
+            .unwrap()
+        })
     }
 
     fn credentials(&self) -> Credentials {

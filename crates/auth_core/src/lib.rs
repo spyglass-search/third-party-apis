@@ -10,6 +10,7 @@ use oauth2::{AuthUrl, ClientId, ClientSecret, RedirectUrl, RevocationUrl, TokenU
 use oauth2::{CsrfToken, PkceCodeChallenge};
 use reqwest::{header, Client, StatusCode};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use thiserror::Error;
 use tokio::sync::watch;
 use url::Url;
@@ -45,6 +46,8 @@ pub trait ApiClient {
     fn id(&self) -> String;
     /// Authenticated account/user identifier.
     async fn account_id(&mut self) -> Result<String>;
+    /// Authenticated account optional metadata
+    async fn account_metadata(&mut self) -> Option<Value>;
     /// Begin OAuth process w/ list of scopes
     fn authorize(&self, scopes: &[String], options: &AuthorizeOptions) -> AuthorizationRequest;
     /// Get the current credentials

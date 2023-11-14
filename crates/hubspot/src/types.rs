@@ -71,12 +71,12 @@ pub struct PagedResults<T> {
     pub results: Vec<T>,
 }
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct AssociationResult {
     pub results: Vec<Association>,
 }
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Association {
     pub id: String,
     #[serde(rename = "type")]
@@ -87,7 +87,7 @@ pub struct Association {
 /// pretty much the same structure. This is separated out for type safety and
 /// in case there's any specific impl details for a particular object (e.g. note
 /// convience fn to return the note body).
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Call {
     pub id: String,
@@ -124,7 +124,7 @@ impl Call {
     }
 }
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Contact {
     pub id: String,
@@ -136,7 +136,7 @@ pub struct Contact {
     pub associations: Option<HashMap<String, AssociationResult>>,
 }
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Email {
     pub id: String,
@@ -148,7 +148,7 @@ pub struct Email {
     pub associations: Option<HashMap<String, AssociationResult>>,
 }
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Meeting {
     pub id: String,
@@ -160,7 +160,7 @@ pub struct Meeting {
     pub associations: Option<HashMap<String, AssociationResult>>,
 }
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Note {
     pub id: String,
@@ -182,7 +182,7 @@ impl Note {
     }
 }
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Task {
     pub id: String,
@@ -194,13 +194,13 @@ pub struct Task {
     pub associations: Option<HashMap<String, AssociationResult>>,
 }
 
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct HubSpotMetaData {
     pub portal_id: i32,
 }
 
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct WebhookEvent {
     pub event_id: usize,

@@ -122,6 +122,30 @@ pub trait ApiClient {
             }
         }
     }
+
+    async fn post_json(
+        &mut self,
+        endpoint: &str,
+        body: impl Serialize + Send,
+    ) -> anyhow::Result<serde_json::Value, ApiError> {
+        let client = self.get_check_client().await?;
+        let resp = client.post(endpoint).json(&body).send().await?;
+
+        match resp.error_for_status() {
+            Ok(resp) => match resp.json().await {
+                Ok(res) => Ok(res),
+                Err(err) => Err(err.into()),
+            },
+            // Any status code from 400..599
+            Err(err) => {
+                if let Some(StatusCode::UNAUTHORIZED) = err.status() {
+                    Err(ApiError::AuthError("Unauthorized".to_owned()))
+                } else {
+                    Err(err.into())
+                }
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

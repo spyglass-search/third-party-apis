@@ -63,7 +63,7 @@ impl CalendarEvent {
 
     pub fn next_recurrence(&self) -> Option<DateTime<Utc>> {
         self.list_recurrences(1, None, None)
-            .map(|x| x.get(0).map(|x| x.to_owned()))
+            .map(|x| x.first().map(|x| x.to_owned()))
             .unwrap_or_default()
     }
 

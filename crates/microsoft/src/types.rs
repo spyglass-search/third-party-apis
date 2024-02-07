@@ -73,7 +73,7 @@ pub struct TaskListTasks {
     pub value: Vec<Task>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct Task {
     #[serde(rename = "@odata.etag")]
@@ -119,9 +119,10 @@ pub struct Task {
     pub due_date_time: Option<TaskDateTime>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub enum TaskStatus {
+    #[default]
     NotStarted,
     InProgress,
     Completed,
@@ -138,17 +139,18 @@ pub struct TaskDateTime {
     pub time_zone: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct TaskBody {
     pub content: String,
     pub content_type: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub enum TaskImportance {
     Low,
+    #[default]
     Normal,
     High,
 }

@@ -1,5 +1,5 @@
 [package]
-name = "reddit"
+name = "microsoft"
 version = "0.1.0"
 edition = "2021"
 
@@ -24,4 +24,4 @@ dotenv = "0.15"
 dotenv_codegen = "0.15"
 
 [lib]
-name = "libreddit"
+name = "libmicrosoft"

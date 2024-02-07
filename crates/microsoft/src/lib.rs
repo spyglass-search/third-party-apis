@@ -12,16 +12,15 @@ use oauth2::{
 use reqwest::Client;
 use serde_json::Value;
 use tokio::sync::watch;
-use types::{ApiResponse, DataWrapper, Listing, Post};
 
 pub mod types;
 
-const AUTH_URL: &str = "https://www.reddit.com/api/v1/authorize";
-const TOKEN_URL: &str = "https://www.reddit.com/api/v1/access_token";
+const AUTH_URL: &str = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize";
+const TOKEN_URL: &str = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
 
-const API_ENDPOINT: &str = "https://oauth.reddit.com";
+const API_ENDPOINT: &str = "https://graph.microsoft.com/v1.0";
 
-pub struct RedditClient {
+pub struct MicrosoftClient {
     pub credentials: Credentials,
     http: Client,
     pub oauth: BasicClient,
@@ -31,16 +30,16 @@ pub struct RedditClient {
 }
 
 #[async_trait]
-impl ApiClient for RedditClient {
+impl ApiClient for MicrosoftClient {
     fn id(&self) -> String {
-        "oauth.reddit.com".to_string()
+        "graph.microsoft.com".to_string()
     }
 
     async fn account_id(&mut self) -> Result<String> {
         if let Some(username) = &self.username {
             Ok(username.clone())
         } else {
-            let name = self.get_user().await?.name;
+            let name = self.get_user().await?.display_name;
             self.username = Some(name.clone());
             Ok(name)
         }
@@ -80,8 +79,6 @@ impl ApiClient for RedditClient {
             .oauth
             .authorize_url(CsrfToken::new_random)
             .add_scopes(scopes)
-            // request a refresh token from Reddit
-            .add_extra_param("duration", "permanent")
             .set_pkce_challenge(pkce_code_challenge.clone())
             .url();
 
@@ -129,7 +126,7 @@ impl ApiClient for RedditClient {
     }
 }
 
-impl RedditClient {
+impl MicrosoftClient {
     pub fn new(
         client_id: &str,
         client_secret: &str,
@@ -147,7 +144,7 @@ impl RedditClient {
 
         let (tx, rx) = watch::channel(creds.clone());
 
-        Ok(RedditClient {
+        Ok(MicrosoftClient {
             credentials: creds.clone(),
             http: auth_http_client(creds.access_token.secret())?,
             oauth: oauth_client(&params),
@@ -159,100 +156,57 @@ impl RedditClient {
 
     pub async fn get_user(&mut self) -> Result<types::User, ApiError> {
         let mut endpoint = API_ENDPOINT.to_string();
-        endpoint.push_str("/api/v1/me");
+        endpoint.push_str("/me");
 
         let resp = self.call_json(&endpoint, &Vec::new()).await?;
         serde_json::from_value::<types::User>(resp).map_err(ApiError::SerdeError)
     }
 
     pub async fn http_client(
-        mut request: oauth2::HttpRequest,
+        request: oauth2::HttpRequest,
     ) -> Result<oauth2::HttpResponse, oauth2::reqwest::Error<reqwest::Error>> {
-        request.headers.insert(
-            "User-Agent",
-            "desktop:com.athlabs.spyglass:v0.0.1 (by /u/andyndino)"
-                .parse()
-                .unwrap(),
-        );
         oauth2::reqwest::async_http_client(request).await
     }
 
-    async fn paginate(
-        &mut self,
-        endpoint: &str,
-        query: &[(String, String)],
-    ) -> Result<ApiResponse<Vec<Post>>, ApiError> {
-        let listing = serde_json::from_value::<types::DataWrapper<Listing<DataWrapper<Post>>>>(
-            self.call_json(endpoint, query).await?,
-        )?;
+    pub async fn get_task_lists(&mut self) -> Result<types::TaskLists, ApiError> {
+        let mut endpoint = API_ENDPOINT.to_string();
+        endpoint.push_str("/me/todo/lists");
 
-        let after = listing.data.after;
-        let posts = listing
-            .data
-            .children
-            .iter()
-            .map(|x| x.data.to_owned())
-            .collect::<Vec<_>>();
-
-        Ok(ApiResponse { after, data: posts })
+        let resp = self.call_json(&endpoint, &Vec::new()).await?;
+        serde_json::from_value::<types::TaskLists>(resp).map_err(ApiError::SerdeError)
     }
 
-    pub async fn get_post(&mut self, id: &str) -> Result<Option<Post>, ApiError> {
+    pub async fn get_tasks(
+        &mut self,
+        task_list_id: &str,
+    ) -> Result<types::TaskListTasks, ApiError> {
         let mut endpoint = API_ENDPOINT.to_string();
-        endpoint.push_str("/api/info");
+        endpoint.push_str(format!("/me/todo/lists/{}/tasks", task_list_id).as_str());
 
-        let query = vec![("id".into(), id.into())];
-
-        let resp = self.paginate(&endpoint, &query).await?;
-        if let Some(post) = resp.data.first() {
-            Ok(Some(post.to_owned()))
-        } else {
-            Ok(None)
-        }
+        let resp = self.call_json(&endpoint, &Vec::new()).await?;
+        serde_json::from_value::<types::TaskListTasks>(resp).map_err(ApiError::SerdeError)
     }
 
-    pub async fn list_saved(
+    pub async fn add_task(
         &mut self,
-        after: Option<String>,
-        limit: usize,
-    ) -> Result<ApiResponse<Vec<Post>>, ApiError> {
+        task_list_id: &str,
+        task: types::Task,
+    ) -> Result<types::Task, ApiError> {
         let mut endpoint = API_ENDPOINT.to_string();
-        let username = self.account_id().await?;
-        endpoint.push_str(&format!("/user/{}/saved", username));
+        endpoint.push_str(format!("/me/todo/lists/{}/tasks", task_list_id).as_str());
 
-        let mut query = vec![
-            // for all time
-            ("t".into(), "all".into()),
-            // Make sure limit is at least 1 & at most 100
-            ("limit".into(), limit.max(1).min(100).to_string()),
-        ];
-        if let Some(after) = after {
-            query.push(("after".into(), after));
-        }
-
-        self.paginate(&endpoint, &query).await
+        let resp = self.post_json(&endpoint, task).await?;
+        serde_json::from_value::<types::Task>(resp).map_err(ApiError::SerdeError)
     }
 
-    pub async fn list_upvoted(
+    pub async fn create_task_list(
         &mut self,
-        after: Option<String>,
-        limit: usize,
-    ) -> Result<ApiResponse<Vec<Post>>, ApiError> {
+        task_list: types::CreateTaskList,
+    ) -> Result<types::TaskListsDef, ApiError> {
         let mut endpoint = API_ENDPOINT.to_string();
-        let username = self.account_id().await?;
-        endpoint.push_str(&format!("/user/{}/upvoted", username));
+        endpoint.push_str("/me/todo/lists");
 
-        let mut query = vec![
-            // for all time
-            ("t".into(), "all".into()),
-            // Make sure limit is at least 1 & at most 100
-            ("limit".into(), limit.max(1).min(100).to_string()),
-        ];
-
-        if let Some(after) = after {
-            query.push(("after".into(), after));
-        }
-
-        self.paginate(&endpoint, &query).await
+        let resp = self.post_json(&endpoint, task_list).await?;
+        serde_json::from_value::<types::TaskListsDef>(resp).map_err(ApiError::SerdeError)
     }
 }

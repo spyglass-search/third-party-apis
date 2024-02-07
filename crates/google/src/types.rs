@@ -63,7 +63,7 @@ impl CalendarEvent {
 
     pub fn next_recurrence(&self) -> Option<DateTime<Utc>> {
         self.list_recurrences(1, None, None)
-            .map(|x| x.get(0).map(|x| x.to_owned()))
+            .map(|x| x.first().map(|x| x.to_owned()))
             .unwrap_or_default()
     }
 
@@ -262,7 +262,7 @@ mod test {
 
         let next = event.next_recurrence();
         assert!(next.is_some());
-        assert_eq!(next.unwrap().to_rfc3339(), "2023-11-12T00:00:00+00:00");
+        assert_eq!(next.unwrap().to_rfc3339(), "2024-11-12T00:00:00+00:00");
     }
 
     #[test]

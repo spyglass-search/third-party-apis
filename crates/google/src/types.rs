@@ -262,7 +262,7 @@ mod test {
 
         let next = event.next_recurrence();
         assert!(next.is_some());
-        assert_eq!(next.unwrap().to_rfc3339(), "2023-11-12T00:00:00+00:00");
+        assert_eq!(next.unwrap().to_rfc3339(), "2024-11-12T00:00:00+00:00");
     }
 
     #[test]

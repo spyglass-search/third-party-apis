@@ -126,7 +126,7 @@ pub trait ApiClient {
     async fn post_json(
         &mut self,
         endpoint: &str,
-        body: impl Serialize + Send,
+        body: serde_json::Value,
     ) -> anyhow::Result<serde_json::Value, ApiError> {
         let client = self.get_check_client().await?;
         let resp = client.post(endpoint).json(&body).send().await?;

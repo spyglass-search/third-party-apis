@@ -195,7 +195,9 @@ impl MicrosoftClient {
         let mut endpoint = API_ENDPOINT.to_string();
         endpoint.push_str(format!("/me/todo/lists/{}/tasks", task_list_id).as_str());
 
-        let resp = self.post_json(&endpoint, task).await?;
+        let resp = self
+            .post_json(&endpoint, serde_json::to_value(&task).unwrap())
+            .await?;
         serde_json::from_value::<types::Task>(resp).map_err(ApiError::SerdeError)
     }
 
@@ -206,7 +208,9 @@ impl MicrosoftClient {
         let mut endpoint = API_ENDPOINT.to_string();
         endpoint.push_str("/me/todo/lists");
 
-        let resp = self.post_json(&endpoint, task_list).await?;
+        let resp = self
+            .post_json(&endpoint, serde_json::to_value(&task_list).unwrap())
+            .await?;
         serde_json::from_value::<types::TaskListsDef>(resp).map_err(ApiError::SerdeError)
     }
 }

@@ -5,9 +5,7 @@ use libauth::{
     Credentials, OAuthParams,
 };
 use oauth2::basic::{BasicClient, BasicTokenResponse};
-use oauth2::{
-    AuthorizationCode, CsrfToken, PkceCodeChallenge, PkceCodeVerifier, Scope, TokenResponse,
-};
+use oauth2::{AuthorizationCode, CsrfToken, PkceCodeVerifier, Scope, TokenResponse};
 
 use reqwest::Client;
 use serde_json::Value;
@@ -68,7 +66,6 @@ impl ApiClient for MicrosoftClient {
     }
 
     fn authorize(&self, scopes: &[String], _: &AuthorizeOptions) -> AuthorizationRequest {
-        let (pkce_code_challenge, pkce_code_verifier) = PkceCodeChallenge::new_random_sha256();
         let scopes = scopes
             .iter()
             .map(|s| Scope::new(s.to_string()))
@@ -79,14 +76,13 @@ impl ApiClient for MicrosoftClient {
             .oauth
             .authorize_url(CsrfToken::new_random)
             .add_scopes(scopes)
-            .set_pkce_challenge(pkce_code_challenge.clone())
             .url();
 
         AuthorizationRequest {
             url: authorize_url,
             csrf_token: csrf_state,
-            pkce_challenge: Some(pkce_code_challenge),
-            pkce_verifier: Some(pkce_code_verifier.secret().to_string()),
+            pkce_challenge: None,
+            pkce_verifier: None,
         }
     }
 
@@ -104,7 +100,7 @@ impl ApiClient for MicrosoftClient {
 
         match exchange.request_async(Self::http_client).await {
             Ok(val) => Ok(val),
-            Err(err) => Err(anyhow!(err.to_string())),
+            Err(err) => Err(anyhow!(format!("Token Exchange Error {:?}", err))),
         }
     }
 

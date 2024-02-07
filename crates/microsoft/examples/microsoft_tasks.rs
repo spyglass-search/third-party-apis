@@ -19,7 +19,7 @@ async fn main() -> anyhow::Result<()> {
         AuthScopes::TasksReadWrite.to_string(),
         AuthScopes::OfflineAccess.to_string(),
     ];
-    load_credentials(&mut client, &scopes, true).await;
+    load_credentials(&mut client, &scopes, false).await;
 
     let user = client.get_user().await?;
     println!(

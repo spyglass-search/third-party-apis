@@ -5,9 +5,7 @@ use libauth::{
     Credentials, OAuthParams,
 };
 use oauth2::basic::{BasicClient, BasicTokenResponse};
-use oauth2::{
-    AuthorizationCode, CsrfToken, PkceCodeChallenge, PkceCodeVerifier, Scope, TokenResponse,
-};
+use oauth2::{AuthorizationCode, CsrfToken, PkceCodeVerifier, Scope, TokenResponse};
 
 use reqwest::Client;
 use serde_json::Value;

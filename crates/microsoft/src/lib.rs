@@ -21,6 +21,7 @@ const API_ENDPOINT: &str = "https://graph.microsoft.com/v1.0";
 pub struct MicrosoftClient {
     pub credentials: Credentials,
     http: Client,
+    api_id: String,
     pub oauth: BasicClient,
     pub on_refresh_tx: watch::Sender<Credentials>,
     pub on_refresh_rx: watch::Receiver<Credentials>,
@@ -30,14 +31,15 @@ pub struct MicrosoftClient {
 #[async_trait]
 impl ApiClient for MicrosoftClient {
     fn id(&self) -> String {
-        "graph.microsoft.com".to_string()
+        self.api_id.clone()
     }
 
     async fn account_id(&mut self) -> Result<String> {
         if let Some(username) = &self.username {
             Ok(username.clone())
         } else {
-            let name = self.get_user().await?.display_name;
+            let user_info = self.get_user().await?;
+            let name = user_info.user_principal_name.unwrap_or(user_info.id);
             self.username = Some(name.clone());
             Ok(name)
         }
@@ -127,6 +129,7 @@ impl MicrosoftClient {
         client_id: &str,
         client_secret: &str,
         redirect_url: &str,
+        api_id: &str,
         creds: Credentials,
     ) -> anyhow::Result<Self> {
         let params = OAuthParams {
@@ -146,6 +149,7 @@ impl MicrosoftClient {
             oauth: oauth_client(&params),
             on_refresh_tx: tx,
             on_refresh_rx: rx,
+            api_id: api_id.to_string(),
             username: None,
         })
     }

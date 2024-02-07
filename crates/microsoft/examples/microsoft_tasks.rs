@@ -12,8 +12,13 @@ async fn main() -> anyhow::Result<()> {
     let client_id = dotenv!("MICROSOFT_CLIENT_ID");
     let client_secret = dotenv!("MICROSOFT_CLIENT_SECRET");
 
-    let mut client =
-        MicrosoftClient::new(client_id, client_secret, REDIRECT_URL, Default::default())?;
+    let mut client = MicrosoftClient::new(
+        client_id,
+        client_secret,
+        REDIRECT_URL,
+        "graph.ahh",
+        Default::default(),
+    )?;
     let scopes = vec![
         AuthScopes::UserRead.to_string(),
         AuthScopes::TasksReadWrite.to_string(),

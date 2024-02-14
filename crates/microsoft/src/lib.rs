@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
+use chrono::{DateTime, SecondsFormat, Utc};
 use libauth::{
     auth_http_client, oauth_client, ApiClient, ApiError, AuthorizationRequest, AuthorizeOptions,
     Credentials, OAuthParams,
@@ -215,9 +216,23 @@ impl MicrosoftClient {
         serde_json::from_value::<types::TaskListsDef>(resp).map_err(ApiError::SerdeError)
     }
 
-    pub async fn get_new_emails(&mut self) -> Result<types::MessageCollection, ApiError> {
+    pub async fn get_new_emails(
+        &mut self,
+        after: Option<DateTime<Utc>>,
+    ) -> Result<types::MessageCollection, ApiError> {
         let mut endpoint = API_ENDPOINT.to_string();
-        endpoint.push_str("/me/mailfolders/inbox/messages/delta");
+
+        // The microsoft API requires the + in the syntax and not the url encoded %2B that
+        // reqwest would put in if we added the query in the query array. This is why the
+        // query string is added manually instead of the proper array style.
+        endpoint.push_str("/me/mailfolders/inbox/messages/delta?$orderby=receivedDateTime+desc");
+
+        if let Some(after) = after {
+            endpoint.push_str(&format!(
+                "&$filter=receivedDateTime+gt+{}",
+                after.to_rfc3339_opts(SecondsFormat::Millis, true)
+            ));
+        }
 
         let resp = self.call_json(&endpoint, &[]).await?;
         serde_json::from_value::<types::MessageCollection>(resp).map_err(ApiError::SerdeError)
@@ -228,10 +243,10 @@ impl MicrosoftClient {
         msg: &MessageCollection,
     ) -> Result<Option<types::MessageCollection>, ApiError> {
         if let Some(next) = &msg.odata_next_link {
-            let resp = self.call_json(&next, &[]).await?;
+            let resp = self.call_json(next, &[]).await?;
             serde_json::from_value::<types::MessageCollection>(resp)
                 .map_err(ApiError::SerdeError)
-                .map(|val| Some(val))
+                .map(Some)
         } else {
             Ok(None)
         }

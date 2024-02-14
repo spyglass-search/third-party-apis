@@ -10,6 +10,7 @@ use oauth2::{AuthorizationCode, CsrfToken, PkceCodeVerifier, Scope, TokenRespons
 use reqwest::Client;
 use serde_json::Value;
 use tokio::sync::watch;
+use types::MessageCollection;
 
 pub mod types;
 
@@ -212,5 +213,35 @@ impl MicrosoftClient {
             .post_json(&endpoint, serde_json::to_value(&task_list).unwrap())
             .await?;
         serde_json::from_value::<types::TaskListsDef>(resp).map_err(ApiError::SerdeError)
+    }
+
+    pub async fn get_new_emails(&mut self) -> Result<types::MessageCollection, ApiError> {
+        let mut endpoint = API_ENDPOINT.to_string();
+        endpoint.push_str("/me/mailfolders/inbox/messages/delta");
+
+        let resp = self.call_json(&endpoint, &[]).await?;
+        serde_json::from_value::<types::MessageCollection>(resp).map_err(ApiError::SerdeError)
+    }
+
+    pub async fn get_next_email_page(
+        &mut self,
+        msg: &MessageCollection,
+    ) -> Result<Option<types::MessageCollection>, ApiError> {
+        if let Some(next) = &msg.odata_next_link {
+            let resp = self.call_json(&next, &[]).await?;
+            serde_json::from_value::<types::MessageCollection>(resp)
+                .map_err(ApiError::SerdeError)
+                .map(|val| Some(val))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub async fn get_delta_email_page(
+        &mut self,
+        delta_url: &str,
+    ) -> Result<types::MessageCollection, ApiError> {
+        let resp = self.call_json(delta_url, &[]).await?;
+        serde_json::from_value::<types::MessageCollection>(resp).map_err(ApiError::SerdeError)
     }
 }

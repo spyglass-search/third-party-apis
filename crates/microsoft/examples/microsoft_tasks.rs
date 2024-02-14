@@ -23,6 +23,7 @@ async fn main() -> anyhow::Result<()> {
         AuthScopes::UserRead.to_string(),
         AuthScopes::TasksReadWrite.to_string(),
         AuthScopes::OfflineAccess.to_string(),
+        AuthScopes::MailRead.to_string(),
     ];
     load_credentials(&mut client, &scopes, false).await;
 
@@ -84,6 +85,15 @@ async fn main() -> anyhow::Result<()> {
     println!(
         "Created List {}",
         serde_json::to_string_pretty(&created_list).unwrap()
+    );
+
+    let emails = client.get_new_emails().await?;
+
+    // let emails = client.get_delta_email_page("https://graph.microsoft.com/v1.0/me/mailFolders('inbox')/messages/delta?$deltatoken=LztZwWjo5IivWBhyxw5rAOaF1aEpmIIXoTpgdnuLDugJJcwY-HKfZ3v_-5_2IYETBwWhHtMQ0h601TKBsp82L98T6l9U8bA4uixRm4jUqfY.g_m7pG94df2RVzL9ZiLwx2YlssVSx2U7V0pAvWrRq_8").await?;
+
+    println!(
+        "Response Email {}",
+        serde_json::to_string_pretty(&emails).unwrap()
     );
 
     Ok(())

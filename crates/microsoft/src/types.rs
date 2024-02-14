@@ -21,7 +21,7 @@ pub enum AuthScopes {
     OfflineAccess,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct User {
     #[serde(rename = "@odata.context")]
@@ -39,7 +39,7 @@ pub struct User {
     pub id: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct TaskLists {
     #[serde(rename = "@odata.context")]
@@ -47,7 +47,7 @@ pub struct TaskLists {
     pub value: Vec<TaskListsDef>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct TaskListsDef {
     #[serde(rename = "@odata.etag")]
@@ -59,13 +59,13 @@ pub struct TaskListsDef {
     pub id: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateTaskList {
     pub display_name: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct TaskListTasks {
     #[serde(rename = "@odata.context")]
@@ -73,7 +73,7 @@ pub struct TaskListTasks {
     pub value: Vec<Task>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Task {
     #[serde(rename = "@odata.etag")]
@@ -119,7 +119,7 @@ pub struct Task {
     pub due_date_time: Option<TaskDateTime>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum TaskStatus {
     #[default]
@@ -130,7 +130,7 @@ pub enum TaskStatus {
     Deferred,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct TaskDateTime {
     // example:  "dateTime": "2024-02-05T08:00:00.0000000",
@@ -139,14 +139,14 @@ pub struct TaskDateTime {
     pub time_zone: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct TaskBody {
     pub content: String,
     pub content_type: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum TaskImportance {
     Low,
@@ -155,14 +155,14 @@ pub enum TaskImportance {
     High,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct TaskPatternedRecurrence {
     pattern: RecurrencePattern,
     range: RecurrenceRange,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 struct RecurrenceRange {
     end_date: Option<String>,
@@ -172,7 +172,7 @@ struct RecurrenceRange {
     recurrence_range_type: RecurrenceRangeType,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 enum RecurrenceRangeType {
     EndDate,
@@ -180,7 +180,7 @@ enum RecurrenceRangeType {
     Numbered,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 struct RecurrencePattern {
     day_of_month: Option<i32>,
@@ -193,7 +193,7 @@ struct RecurrencePattern {
     recurrence_pattern_type: RecurrencePatternType,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 enum DayOfWeek {
     Sunday,
     Monday,
@@ -204,7 +204,7 @@ enum DayOfWeek {
     Saturday,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 enum WeekIndex {
     First,
     Second,
@@ -213,7 +213,7 @@ enum WeekIndex {
     Last,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 enum RecurrencePatternType {
     Daily,
     Weekly,
@@ -221,4 +221,103 @@ enum RecurrencePatternType {
     RelativeMonthly,
     AbsoluteYearly,
     RelativeYearly,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct MessageAddress {
+    pub email_address: EmailAddress,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct EmailAddress {
+    pub name: String,
+    pub address: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Flag {
+    pub flag_status: FlagStatus,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub enum FlagStatus {
+    NotFlagged,
+    Flagged,
+    Complete,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Body {
+    pub content_type: String,
+    pub content: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct MessageRemovedReason {
+    pub reason: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct GenericMessage {
+    #[serde(rename = "@odata.etag")]
+    pub odata_etag: String,
+    pub created_date_time: String,
+    pub last_modified_date_time: String,
+    pub change_key: String,
+    pub categories: Vec<String>,
+    pub received_date_time: String,
+    pub sent_date_time: String,
+    pub has_attachments: bool,
+    pub internet_message_id: String,
+    pub subject: String,
+    pub body_preview: String,
+    pub importance: String,
+    pub parent_folder_id: String,
+    pub conversation_id: String,
+    pub conversation_index: String,
+    pub is_delivery_receipt_requested: bool,
+    pub is_read_receipt_requested: bool,
+    pub is_read: bool,
+    pub is_draft: bool,
+    pub web_link: String,
+    pub inference_classification: String,
+    pub body: Body,
+    pub sender: MessageAddress,
+    pub from: MessageAddress,
+    pub to_recipients: Vec<MessageAddress>,
+    pub cc_recipients: Vec<MessageAddress>,
+    pub bcc_recipients: Vec<MessageAddress>,
+    pub reply_to: Vec<MessageAddress>,
+    pub flag: Flag,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Message {
+    #[serde(rename = "@odata.type")]
+    pub odata_type: String,
+    #[serde(rename = "@removed")]
+    pub removed: Option<MessageRemovedReason>,
+    pub id: String,
+    #[serde(flatten)]
+    pub message: Option<GenericMessage>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct MessageCollection {
+    #[serde(rename = "@odata.context")]
+    pub odata_context: Option<String>,
+    pub value: Vec<Message>,
+    #[serde(rename = "@odata.deltaLink")]
+    pub odata_delta_link: Option<String>,
+    #[serde(rename = "@odata.nextLink")]
+    pub odata_next_link: Option<String>,
 }

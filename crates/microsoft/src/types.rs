@@ -61,6 +61,29 @@ pub struct TaskListsDef {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
+pub struct ResourceLink {
+    pub web_url: Option<String>,
+    pub application_name: String,
+    pub display_name: String,
+    pub external_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+}
+
+impl From<&GenericMessage> for ResourceLink {
+    fn from(value: &GenericMessage) -> Self {
+        ResourceLink {
+            web_url: Some(value.web_link.to_string()),
+            application_name: "Outlook".to_string(),
+            display_name: value.subject.to_string(),
+            external_id: value.conversation_id.to_string(),
+            id: None,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateTaskList {
     pub display_name: String,
 }
@@ -80,7 +103,9 @@ pub struct Task {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     pub odata_etag: Option<String>,
-    pub body: TaskBody,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    pub body: Option<TaskBody>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[serde(default)]
     pub categories: Vec<String>,

@@ -53,10 +53,10 @@ async fn main() -> anyhow::Result<()> {
             .add_task(
                 &list.id,
                 Task {
-                    body: TaskBody {
+                    body: Some(TaskBody {
                         content: "My Test Content".to_string(),
                         content_type: "text".to_string(),
-                    },
+                    }),
                     body_last_modified_date_time: None,
                     last_modified_date_time: None,
                     odata_etag: None,
@@ -100,6 +100,26 @@ async fn main() -> anyhow::Result<()> {
         "Response Email {}",
         serde_json::to_string_pretty(&emails).unwrap()
     );
+
+    for email in emails.value {
+        let task = client
+            .add_task(
+                &created_list.id,
+                Task {
+                    has_attachments: false,
+                    title: "Link title".to_string(),
+                    ..Default::default()
+                },
+            )
+            .await?;
+
+        if let Some(msg) = &email.message {
+            let link = client
+                .add_task_link(&created_list.id, &task.id, msg.into())
+                .await?;
+            println!("Link {}", serde_json::to_string_pretty(&link).unwrap());
+        }
+    }
 
     let emails = client
         .get_new_emails(Some(

@@ -34,6 +34,12 @@ async fn main() -> anyhow::Result<()> {
         serde_json::to_string_pretty(&user).unwrap()
     );
 
+    let default_task_list = client.get_default_task_list().await?;
+    println!(
+        "Default Task List: {}",
+        serde_json::to_string_pretty(&default_task_list).unwrap()
+    );
+
     let task_lists = client.get_task_lists().await?;
     println!(
         "Task Lists: {}",

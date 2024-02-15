@@ -20,6 +20,8 @@ const TOKEN_URL: &str = "https://login.microsoftonline.com/common/oauth2/v2.0/to
 
 const API_ENDPOINT: &str = "https://graph.microsoft.com/v1.0";
 
+pub const DEFAULT_LIST_NAME: &str = "defaultList";
+
 pub struct MicrosoftClient {
     pub credentials: Credentials,
     http: Client,
@@ -176,6 +178,22 @@ impl MicrosoftClient {
 
         let resp = self.call_json(&endpoint, &Vec::new()).await?;
         serde_json::from_value::<types::TaskLists>(resp).map_err(ApiError::SerdeError)
+    }
+
+    pub async fn get_default_task_list(&mut self) -> Result<Option<types::TaskListsDef>, ApiError> {
+        let mut endpoint = API_ENDPOINT.to_string();
+        endpoint.push_str("/me/todo/lists");
+
+        let resp = self.call_json(&endpoint, &Vec::new()).await?;
+        serde_json::from_value::<types::TaskLists>(resp)
+            .map_err(ApiError::SerdeError)
+            .map(|lists| {
+                lists
+                    .value
+                    .iter()
+                    .find(|list| list.wellknown_list_name == DEFAULT_LIST_NAME)
+                    .cloned()
+            })
     }
 
     pub async fn get_tasks(

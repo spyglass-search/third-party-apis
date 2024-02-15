@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
+use chrono::{DateTime, SecondsFormat, Utc};
 use libauth::{
     auth_http_client, oauth_client, ApiClient, ApiError, AuthorizationRequest, AuthorizeOptions,
     Credentials, OAuthParams,
@@ -10,6 +11,7 @@ use oauth2::{AuthorizationCode, CsrfToken, PkceCodeVerifier, Scope, TokenRespons
 use reqwest::Client;
 use serde_json::Value;
 use tokio::sync::watch;
+use types::MessageCollection;
 
 pub mod types;
 
@@ -17,6 +19,8 @@ const AUTH_URL: &str = "https://login.microsoftonline.com/common/oauth2/v2.0/aut
 const TOKEN_URL: &str = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
 
 const API_ENDPOINT: &str = "https://graph.microsoft.com/v1.0";
+
+pub const DEFAULT_LIST_NAME: &str = "defaultList";
 
 pub struct MicrosoftClient {
     pub credentials: Credentials,
@@ -176,6 +180,22 @@ impl MicrosoftClient {
         serde_json::from_value::<types::TaskLists>(resp).map_err(ApiError::SerdeError)
     }
 
+    pub async fn get_default_task_list(&mut self) -> Result<Option<types::TaskListsDef>, ApiError> {
+        let mut endpoint = API_ENDPOINT.to_string();
+        endpoint.push_str("/me/todo/lists");
+
+        let resp = self.call_json(&endpoint, &Vec::new()).await?;
+        serde_json::from_value::<types::TaskLists>(resp)
+            .map_err(ApiError::SerdeError)
+            .map(|lists| {
+                lists
+                    .value
+                    .iter()
+                    .find(|list| list.wellknown_list_name == DEFAULT_LIST_NAME)
+                    .cloned()
+            })
+    }
+
     pub async fn get_tasks(
         &mut self,
         task_list_id: &str,
@@ -212,5 +232,49 @@ impl MicrosoftClient {
             .post_json(&endpoint, serde_json::to_value(&task_list).unwrap())
             .await?;
         serde_json::from_value::<types::TaskListsDef>(resp).map_err(ApiError::SerdeError)
+    }
+
+    pub async fn get_new_emails(
+        &mut self,
+        after: Option<DateTime<Utc>>,
+    ) -> Result<types::MessageCollection, ApiError> {
+        let mut endpoint = API_ENDPOINT.to_string();
+
+        // The microsoft API requires the + in the syntax and not the url encoded %2B that
+        // reqwest would put in if we added the query in the query array. This is why the
+        // query string is added manually instead of the proper array style.
+        endpoint.push_str("/me/mailfolders/inbox/messages/delta?$orderby=receivedDateTime+desc");
+
+        if let Some(after) = after {
+            endpoint.push_str(&format!(
+                "&$filter=receivedDateTime+gt+{}",
+                after.to_rfc3339_opts(SecondsFormat::Millis, true)
+            ));
+        }
+
+        let resp = self.call_json(&endpoint, &[]).await?;
+        serde_json::from_value::<types::MessageCollection>(resp).map_err(ApiError::SerdeError)
+    }
+
+    pub async fn get_next_email_page(
+        &mut self,
+        msg: &MessageCollection,
+    ) -> Result<Option<types::MessageCollection>, ApiError> {
+        if let Some(next) = &msg.odata_next_link {
+            let resp = self.call_json(next, &[]).await?;
+            serde_json::from_value::<types::MessageCollection>(resp)
+                .map_err(ApiError::SerdeError)
+                .map(Some)
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub async fn get_delta_email_page(
+        &mut self,
+        delta_url: &str,
+    ) -> Result<types::MessageCollection, ApiError> {
+        let resp = self.call_json(delta_url, &[]).await?;
+        serde_json::from_value::<types::MessageCollection>(resp).map_err(ApiError::SerdeError)
     }
 }

@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use dotenv_codegen::dotenv;
 use libauth::helpers::load_credentials;
 use libmicrosoft::{
@@ -23,6 +24,7 @@ async fn main() -> anyhow::Result<()> {
         AuthScopes::UserRead.to_string(),
         AuthScopes::TasksReadWrite.to_string(),
         AuthScopes::OfflineAccess.to_string(),
+        AuthScopes::MailRead.to_string(),
     ];
     load_credentials(&mut client, &scopes, false).await;
 
@@ -30,6 +32,12 @@ async fn main() -> anyhow::Result<()> {
     println!(
         "Authenticated as user: {}",
         serde_json::to_string_pretty(&user).unwrap()
+    );
+
+    let default_task_list = client.get_default_task_list().await?;
+    println!(
+        "Default Task List: {}",
+        serde_json::to_string_pretty(&default_task_list).unwrap()
     );
 
     let task_lists = client.get_task_lists().await?;
@@ -84,6 +92,41 @@ async fn main() -> anyhow::Result<()> {
     println!(
         "Created List {}",
         serde_json::to_string_pretty(&created_list).unwrap()
+    );
+
+    let emails = client.get_new_emails(None).await?;
+
+    println!(
+        "Response Email {}",
+        serde_json::to_string_pretty(&emails).unwrap()
+    );
+
+    let emails = client
+        .get_new_emails(Some(
+            DateTime::parse_from_rfc3339("2024-02-13T10:00:00-08:00")
+                .unwrap()
+                .with_timezone(&Utc),
+        ))
+        .await?;
+
+    println!(
+        "Response Email {}",
+        serde_json::to_string_pretty(&emails).unwrap()
+    );
+
+    let emails = client
+        .get_new_emails(Some(
+            DateTime::parse_from_rfc3339("2024-02-13T16:00:00-08:00")
+                .unwrap()
+                .with_timezone(&Utc),
+        ))
+        .await?;
+
+    // let emails = client.get_delta_email_page("https://graph.microsoft.com/v1.0/me/mailFolders('inbox')/messages/delta?$deltatoken=LztZwWjo5IivWBhyxw5rAOaF1aEpmIIXoTpgdnuLDugJJcwY-HKfZ3v_-5_2IYETBwWhHtMQ0h601TKBsp82L98T6l9U8bA4uixRm4jUqfY.g_m7pG94df2RVzL9ZiLwx2YlssVSx2U7V0pAvWrRq_8").await?;
+
+    println!(
+        "Response Email {}",
+        serde_json::to_string_pretty(&emails).unwrap()
     );
 
     Ok(())

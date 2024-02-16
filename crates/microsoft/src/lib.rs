@@ -221,6 +221,27 @@ impl MicrosoftClient {
         serde_json::from_value::<types::Task>(resp).map_err(ApiError::SerdeError)
     }
 
+    pub async fn add_task_link(
+        &mut self,
+        task_list_id: &str,
+        task_id: &str,
+        link: types::ResourceLink,
+    ) -> Result<types::ResourceLink, ApiError> {
+        let mut endpoint = API_ENDPOINT.to_string();
+        endpoint.push_str(
+            format!(
+                "/me/todo/lists/{}/tasks/{}/linkedResources",
+                task_list_id, task_id
+            )
+            .as_str(),
+        );
+
+        let resp = self
+            .post_json(&endpoint, serde_json::to_value(&link).unwrap())
+            .await?;
+        serde_json::from_value::<types::ResourceLink>(resp).map_err(ApiError::SerdeError)
+    }
+
     pub async fn create_task_list(
         &mut self,
         task_list: types::CreateTaskList,

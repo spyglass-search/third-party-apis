@@ -47,5 +47,43 @@ async fn main() -> anyhow::Result<()> {
         println!("---")
     }
 
+    println!("--- Tasks ---");
+    let tasks = client
+        .list_objects::<libhubspot::types::Task>(libhubspot::CrmObject::Tasks, &[], &[], None, None)
+        .await?;
+    for (idx, task) in tasks.results.iter().enumerate() {
+        println!(
+            "{idx}: {:?} {:?} {:?} {:?} {:?}",
+            task.subject(),
+            task.raw_body(),
+            task.task_type(),
+            task.status(),
+            task.priority()
+        );
+    }
+
+    println!("--- Emails ---");
+    let emails = client
+        .list_objects::<libhubspot::types::Email>(
+            libhubspot::CrmObject::Emails,
+            &[],
+            &[],
+            None,
+            None,
+        )
+        .await?;
+    for (idx, email) in emails.results.iter().enumerate() {
+        println!(
+            "{idx}: {:?} {:?} {:?} {:?} {:?} {:?} {:?}",
+            email.email_direction(),
+            email.html_body(),
+            email.raw_body(),
+            email.owner_id(),
+            email.received(),
+            email.status(),
+            email.subject()
+        );
+    }
+
     Ok(())
 }

@@ -53,6 +53,37 @@ const DEFAULT_PROPERTIES: &[(CrmObject, &[&str])] = &[
             "hubspot_owner_id",
         ],
     ),
+    (
+        CrmObject::Tasks,
+        &[
+            "hs_timestamp",
+            "hs_task_body",
+            "hubspot_owner_id",
+            "hs_task_subject",
+            "hs_task_status",
+            "hs_task_priority",
+            "hs_task_type",
+        ],
+    ),
+    (
+        CrmObject::Emails,
+        &[
+            "hs_timestamp",
+            "hs_email_direction",
+            "hubspot_owner_id",
+            "hs_email_html",
+            "hs_email_status",
+            "hs_email_subject",
+            "hs_email_text",
+            "hs_attachment_ids",
+            "hs_email_from_email",
+            "hs_email_from_firstname",
+            "hs_email_from_lastname",
+            "hs_email_to_email",
+            "hs_email_to_firstname",
+            "hs_email_to_lastname",
+        ],
+    ),
 ];
 
 #[derive(Display, EnumString, PartialEq, Eq, Clone)]

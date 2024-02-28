@@ -36,6 +36,8 @@ pub enum AuthScope {
     DealsSchemaRead,
     #[strum(serialize = "crm.schemas.deals.write")]
     DealsSchemaWrite,
+    #[strum(serialize = "sales-email-read")]
+    ReadEmail,
 }
 
 impl AuthScope {
@@ -50,6 +52,7 @@ impl AuthScope {
             AuthScope::DealsWrite,
             AuthScope::DealsSchemaRead,
             AuthScope::DealsSchemaWrite,
+            AuthScope::ReadEmail,
         ]
     }
 }
@@ -148,6 +151,84 @@ pub struct Email {
     pub associations: Option<HashMap<String, AssociationResult>>,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum EmailStatus {
+    #[serde(rename = "BOUNCED")]
+    Bounced,
+    #[serde(rename = "FAILED")]
+    Failed,
+    #[serde(rename = "SCHEDULED")]
+    Scheduled,
+    #[serde(rename = "SENDING")]
+    Sending,
+    #[serde(rename = "SENT")]
+    Sent,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum EmailDirection {
+    #[serde(rename = "EMAIL")]
+    Email,
+    #[serde(rename = "INCOMING_EMAIL")]
+    IncomingEmail,
+    #[serde(rename = "FORWARDED_EMAIL")]
+    ForwardedEmail,
+}
+
+impl Email {
+    pub fn received(&self) -> String {
+        self.properties
+            .get("hs_timestamp")
+            .map(|s| s.as_str().unwrap_or(""))
+            .map(|s| s.to_owned())
+            .unwrap_or_default()
+    }
+
+    pub fn raw_body(&self) -> String {
+        self.properties
+            .get("hs_email_text")
+            .map(|s| s.as_str().unwrap_or(""))
+            .map(|s| s.to_owned())
+            .unwrap_or_default()
+    }
+
+    pub fn html_body(&self) -> String {
+        self.properties
+            .get("hs_email_html")
+            .map(|s| s.as_str().unwrap_or(""))
+            .map(|s| s.to_owned())
+            .unwrap_or_default()
+    }
+
+    pub fn owner_id(&self) -> String {
+        self.properties
+            .get("hubspot_owner_id")
+            .map(|s| s.as_str().unwrap_or(""))
+            .map(|s| s.to_owned())
+            .unwrap_or_default()
+    }
+
+    pub fn status(&self) -> Option<EmailStatus> {
+        self.properties
+            .get("hs_email_status")
+            .and_then(|s| serde_json::from_value::<EmailStatus>(s.clone()).ok())
+    }
+
+    pub fn subject(&self) -> String {
+        self.properties
+            .get("hs_email_subject")
+            .map(|s| s.as_str().unwrap_or(""))
+            .map(|s| s.to_owned())
+            .unwrap_or_default()
+    }
+
+    pub fn email_direction(&self) -> Option<EmailDirection> {
+        self.properties
+            .get("hs_email_direction")
+            .and_then(|s| serde_json::from_value::<EmailDirection>(s.clone()).ok())
+    }
+}
+
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Meeting {
@@ -190,8 +271,89 @@ pub struct Task {
     pub updated_at: String,
     pub archived: bool,
     pub archived_at: Option<String>,
-    pub properties: HashMap<String, String>,
+    pub properties: HashMap<String, Value>,
     pub associations: Option<HashMap<String, AssociationResult>>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum TaskStatus {
+    #[serde(rename = "NOT_STARTED")]
+    NotStarted,
+    #[serde(rename = "COMPLETED")]
+    Completed,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum TaskPriority {
+    #[serde(rename = "HIGH")]
+    High,
+    #[serde(rename = "MEDIUM")]
+    Medium,
+    #[serde(rename = "LOW")]
+    Low,
+    #[serde(rename = "NONE")]
+    None,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum TaskType {
+    #[serde(rename = "EMAIL")]
+    Email,
+    #[serde(rename = "CALL")]
+    Call,
+    #[serde(rename = "TODO")]
+    Todo,
+}
+
+impl Task {
+    pub fn due_date(&self) -> String {
+        self.properties
+            .get("hs_timestamp")
+            .map(|s| s.as_str().unwrap_or(""))
+            .map(|s| s.to_owned())
+            .unwrap_or_default()
+    }
+
+    pub fn raw_body(&self) -> String {
+        self.properties
+            .get("hs_task_body")
+            .map(|s| s.as_str().unwrap_or(""))
+            .map(|s| s.to_owned())
+            .unwrap_or_default()
+    }
+
+    pub fn owner_id(&self) -> String {
+        self.properties
+            .get("hubspot_owner_id")
+            .map(|s| s.as_str().unwrap_or(""))
+            .map(|s| s.to_owned())
+            .unwrap_or_default()
+    }
+
+    pub fn subject(&self) -> Option<String> {
+        self.properties
+            .get("hs_task_subject")
+            .map(|s| s.as_str().unwrap_or(""))
+            .map(|s| s.to_owned())
+    }
+
+    pub fn status(&self) -> Option<TaskStatus> {
+        self.properties
+            .get("hs_task_status")
+            .and_then(|s| serde_json::from_value::<TaskStatus>(s.clone()).ok())
+    }
+
+    pub fn priority(&self) -> Option<TaskPriority> {
+        self.properties
+            .get("hs_task_priority")
+            .and_then(|s| serde_json::from_value::<TaskPriority>(s.clone()).ok())
+    }
+
+    pub fn task_type(&self) -> Option<TaskType> {
+        self.properties
+            .get("hs_task_type")
+            .and_then(|s| serde_json::from_value::<TaskType>(s.clone()).ok())
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
